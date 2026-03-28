@@ -1,7 +1,17 @@
-# Go
-go.sum
-*.mod
-*.sum
+# Go binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+getdevice-api
+bin/
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
 
 # OS
 .DS_Store
@@ -18,10 +28,6 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
-
-# Binary
-getdevice-api
-bin/
 
 # Build output
 dist/
