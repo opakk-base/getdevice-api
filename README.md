@@ -2,246 +2,353 @@
 
 A simple Go API that returns comprehensive device information including device ID, hostname, OS details, network information, and more.
 
-## Features
+## ✨ Features
 
-- **Auto-generated IDs**: Automatically generates UUID for device_id if not configured
-- **Auto-generated Client Key**: Creates a random client key if not provided
+- **Persistent Device ID**: Auto-generates UUID v4 on first run, saves to `.env` for persistence
+- **Persistent Client Key**: Auto-generates SHA256 key on first run, remains same across restarts
 - **Network Information**: Retrieves MAC address and local IP address
 - **System Information**: Returns OS name, architecture, and hostname
 - **Environment Configuration**: Use `.env` file to customize device settings
 - **Health Check Endpoint**: Simple health check endpoint for monitoring
 - **RESTful API**: Clean JSON response format
 
-## Installation
+## 🚀 Quick Start
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/opakk-base/getdevice-api.git
+cd getdevice-api
+go mod download
+```
+
+### 2. Run
+
+```bash
+go run main.go
+```
+
+### 3. Test
+
+```bash
+curl http://localhost:8080/getdevice
+```
+
+## 📦 Installation
 
 ### Prerequisites
 
 - Go 1.21 or higher
 - Git
 
-### Clone the Repository
-
-```bash
-git clone <repository-url>
-cd getdevice-api
-```
-
-### Install Dependencies
-
-```bash
-go mod download
-```
-
-### Build the Application
+### Build
 
 ```bash
 go build -o getdevice-api
-```
-
-### Run the Application
-
-```bash
 ./getdevice-api
 ```
 
-Or run directly:
+### Run Directly
 
 ```bash
 go run main.go
 ```
 
-## Usage
+## ⚙️ Configuration
 
-### Configuration
+### .env File
 
 Create a `.env` file in the project root:
 
 ```env
 # Device Configuration
-DEVICE_ID=          # Optional: Leave empty to auto-generate UUID
+# Leave DEVICE_ID and CLIENT_KEY empty to auto-generate on first run
+DEVICE_ID=
 DEVICE_NAME=my-device
-CLIENT_KEY=         # Optional: Leave empty to auto-generate client key
+CLIENT_KEY=
 
 # Server Configuration
 PORT=8080
 ```
 
-### Run with Custom Configuration
+### Auto-Generation (Recommended)
+
+Leave `DEVICE_ID` and `CLIENT_KEY` empty - they will be:
+1. **Auto-generated** on first run
+2. **Auto-saved** to `.env` file
+3. **Persistent** across restarts
 
 ```bash
-# Using .env file
-./getdevice-api
+# First run - generates IDs
+go run main.go
 
-# With environment variables
-DEVICE_ID=my-uuid DEVICE_NAME=my-device PORT=3000 ./getdevice-api
+# Check .env - IDs are saved!
+cat .env
+
+# Restart - same IDs!
+go run main.go
 ```
 
-## API Documentation
+### Manual Configuration
 
-### Health Check
+Set your own values:
 
-**Endpoint:** `GET /health`
+```env
+DEVICE_ID=my-custom-uuid-123
+CLIENT_KEY=my-custom-key-456
+DEVICE_NAME=production-server
+PORT=8080
+```
 
-Returns the current health status of the API.
+## 📡 API Documentation
+
+### 1. GET /getdevice
+
+Returns comprehensive device information.
+
+**Request:**
+```bash
+curl http://localhost:8080/getdevice
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "device_id": "3fac064c-f7ef-4bad-812d-15607a6c61ef",
+    "device_name": "my-device",
+    "client_key": "d8edd98a85d248633276b463415419b41f12611c393c957109e32e70b123d422",
+    "hostname": "VM-6-91-opencloudos",
+    "os": "linux",
+    "arch": "amd64",
+    "mac_address": "52:54:00:25:b7:d9",
+    "ip_address": "10.11.6.91",
+    "timestamp": "2026-03-28T06:40:53Z"
+  }
+}
+```
+
+### 2. GET /health
+
+Health check endpoint.
+
+**Request:**
+```bash
+curl http://localhost:8080/health
+```
 
 **Response:**
 ```json
 {
   "success": true,
   "status": "healthy",
-  "timestamp": "2024-01-15T10:30:00Z"
+  "timestamp": "2026-03-28T06:40:53Z"
 }
 ```
 
-### Get Device Information
-
-**Endpoint:** `GET /getdevice`
-
-Returns comprehensive device information.
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "device_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "device_name": "my-device",
-    "client_key": "abc123def456...",
-    "hostname": "myhost",
-    "os": "linux",
-    "arch": "amd64",
-    "mac_address": "00:11:22:33:44:55",
-    "ip_address": "192.168.1.100",
-    "timestamp": "2024-01-15T10:30:00Z"
-  }
-}
-```
-
-### Response Fields
+## 🔍 Response Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `success` | boolean | Whether the request was successful |
-| `data.device_id` | string | Unique device identifier (UUID) |
-| `data.device_name` | string | Name of the device |
-| `data.client_key` | string | Unique client identifier |
-| `data.hostname` | string | System hostname |
-| `data.os` | string | Operating system name (lowercase) |
-| `data.arch` | string | System architecture |
-| `data.mac_address` | string | MAC address of the primary network interface |
-| `data.ip_address` | string | Local IP address |
-| `data.timestamp` | string | ISO8601 formatted timestamp |
+| `device_id` | string | Unique device identifier (UUID v4) |
+| `device_name` | string | Device name (from .env or hostname) |
+| `client_key` | string | Client authentication key (SHA256 hash) |
+| `hostname` | string | System hostname |
+| `os` | string | Operating system (darwin/linux/windows) |
+| `arch` | string | Architecture (amd64/arm64) |
+| `mac_address` | string | MAC address of primary network interface |
+| `ip_address` | string | Local IP address |
+| `timestamp` | string | ISO8601 timestamp (UTC) |
 
-## Example Requests
+## 💡 How Persistent IDs Work
 
-### Using cURL
+### First Run
+
+1. Check `.env` for `DEVICE_ID` and `CLIENT_KEY`
+2. Both are **empty** → Generate new UUID and client key
+3. **Save** to `.env` file automatically
+4. Return generated IDs
+
+### Subsequent Runs
+
+1. Check `.env` for `DEVICE_ID` and `CLIENT_KEY`
+2. Both are **present** → Read from `.env`
+3. Return saved IDs (**SAME as first run!**)
+
+### Example
 
 ```bash
-# Health check
-curl http://localhost:8080/health
+# First run
+$ go run main.go
+$ curl http://localhost:8080/getdevice | jq .data.device_id
+"3fac064c-f7ef-4bad-812d-15607a6c61ef"
 
-# Get device information
-curl http://localhost:8080/getdevice
+# Check .env
+$ cat .env | grep DEVICE_ID
+DEVICE_ID=3fac064c-f7ef-4bad-812d-15607a6c61ef
 
-# With verbose output
-curl -v http://localhost:8080/getdevice
+# Restart
+$ go run main.go
+$ curl http://localhost:8080/getdevice | jq .data.device_id
+"3fac064c-f7ef-4bad-812d-15607a6c61ef"  # ← SAME!
 ```
 
-### Using JavaScript/Fetch
+## 🛠️ Development
 
-```javascript
-// Health check
-fetch('http://localhost:8080/health')
-  .then(res => res.json())
-  .then(data => console.log(data));
-
-// Get device information
-fetch('http://localhost:8080/getdevice')
-  .then(res => res.json())
-  .then(data => console.log(data));
-```
-
-### Using Python/Requests
-
-```python
-import requests
-
-# Health check
-response = requests.get('http://localhost:8080/health')
-print(response.json())
-
-# Get device information
-response = requests.get('http://localhost:8080/getdevice')
-print(response.json())
-```
-
-## Project Structure
+### Project Structure
 
 ```
 getdevice-api/
-├── main.go              # Application entry point
-├── go.mod               # Go module definition
-├── go.sum               # Go dependencies checksum
-├── .env.example         # Example environment variables
-├── .gitignore           # Git ignore rules
-├── README.md            # This file
-├── handlers/            # HTTP request handlers
-│   └── device.go
-├── models/              # Data models
-│   └── device.go
-├── services/            # Business logic
-│   ├── device.go
-│   └── id_generator.go
-└── utils/               # Utility functions
-    ├── env.go
-    └── network.go
+├── main.go                 # Entry point
+├── handlers/
+│   └── device.go          # HTTP handlers
+├── models/
+│   └── device.go          # Response models
+├── services/
+│   ├── device.go          # Device info service
+│   └── id_generator.go    # ID generation & persistence
+├── utils/
+│   ├── env.go             # Environment utilities
+│   └── network.go         # Network utilities
+├── .env.example           # Environment template
+├── go.mod                 # Go module
+└── README.md              # This file
 ```
 
-## Response Example
+### Dependencies
 
-### Full Device Info Response
+```go
+require (
+    github.com/google/uuid v1.6.0      // UUID generation
+    github.com/joho/godotenv v1.5.1    // .env file loader
+)
+```
+
+### Run Tests
+
+```bash
+go test ./...
+```
+
+## 📊 Use Cases
+
+### 1. Device Fingerprinting
+
+Identify unique devices in your system:
 
 ```json
 {
-  "success": true,
-  "data": {
-    "device_id": "550e8400-e29b-41d4-a716-446655440000",
+  "device_id": "3fac064c-f7ef-4bad-812d-15607a6c61ef",
+  "client_key": "d8edd98a85d248633276b463415419b41f12611c393c957109e32e70b123d422"
+}
+```
+
+### 2. License Validation
+
+Use `device_id` and `client_key` for software licensing:
+
+```bash
+# Send to license server
+curl -X POST https://license.example.com/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "device_id": "3fac064c-f7ef-4bad-812d-15607a6c61ef",
+    "client_key": "d8edd98a85d248633276b463415419b41f12611c393c957109e32e70b123d422"
+  }'
+```
+
+### 3. Analytics Tracking
+
+Track which devices are using your application:
+
+```json
+{
+  "device_id": "3fac064c-f7ef-4bad-812d-15607a6c61ef",
+  "os": "linux",
+  "arch": "amd64",
+  "timestamp": "2026-03-28T06:40:53Z"
+}
+```
+
+### 4. Multi-Device Management
+
+Manage multiple installations:
+
+```bash
+# Get all devices
+curl https://api.example.com/devices
+
+# Response
+[
+  {
+    "device_id": "3fac064c-f7ef-4bad-812d-15607a6c61ef",
     "device_name": "production-server",
-    "client_key": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
-    "hostname": "web-server-01",
-    "os": "linux",
-    "arch": "amd64",
-    "mac_address": "D4:BE:D9:12:34:56",
-    "ip_address": "10.0.0.15",
-    "timestamp": "2024-01-15T10:30:45Z"
+    "last_seen": "2026-03-28T06:40:53Z"
+  },
+  {
+    "device_id": "abc-123-def",
+    "device_name": "staging-server",
+    "last_seen": "2026-03-28T05:30:00Z"
   }
-}
+]
 ```
 
-## Error Handling
+## 🔧 Troubleshooting
 
-The API returns proper HTTP status codes:
+### Port Already in Use
 
-- `200 OK`: Successful request
-- `500 Internal Server Error`: Server error (if any)
+```bash
+# Kill process on port 8080
+lsof -ti:8080 | xargs kill -9
 
-Error responses (if any) will follow this format:
-
-```json
-{
-  "success": false,
-  "error": "Error message"
-}
+# Or use different port
+PORT=3000 go run main.go
 ```
 
-## Contributing
+### .env File Not Found
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Warning is normal - app will create `.env` on first run.
 
-## License
+### Device ID Changes After Restart
 
-This project is licensed under the MIT License.
+Make sure `.env` file is writable and IDs are saved:
 
-## Author
+```bash
+# Check .env exists
+ls -la .env
 
-Created as a simple device information API service.
+# Check IDs are saved
+cat .env | grep DEVICE_ID
+```
+
+### Permission Denied
+
+```bash
+# Make .env writable
+chmod 644 .env
+
+# Or run with sudo (not recommended)
+sudo go run main.go
+```
+
+## 📝 License
+
+MIT License - feel free to use in your projects!
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+## 📧 Support
+
+- **Issues:** https://github.com/opakk-base/getdevice-api/issues
+- **Repository:** https://github.com/opakk-base/getdevice-api
+
+---
+
+**Built with ❤️ using Go**
