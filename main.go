@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"getdevice-api/handlers"
+	"getdevice-api/services"
 )
 
 func main() {
@@ -22,8 +23,12 @@ func main() {
 		port = "8080"
 	}
 
+	// Initialize services
+	envPath := ".env"
+	deviceService := services.NewDeviceService(envPath)
+
 	// Create handlers
-	deviceHandler := handlers.NewDeviceHandler()
+	deviceHandler := handlers.NewDeviceHandler(deviceService)
 
 	// Set up routes
 	mux := http.NewServeMux()

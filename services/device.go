@@ -59,7 +59,8 @@ func (s *DeviceService) GetDeviceInfo() (*DeviceInfo, error) {
 	hostname, _ := os.Hostname()
 
 	// Get network info
-	macAddress, ipAddress := utils.GetNetworkInfo()
+	macAddress := utils.GetMACAddress()
+	ipAddress := utils.GetLocalIP()
 
 	// Create device info
 	info := &DeviceInfo{
