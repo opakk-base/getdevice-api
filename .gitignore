@@ -1,0 +1,28 @@
+# Go
+go.sum
+*.mod
+*.sum
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Binary
+getdevice-api
+bin/
+
+# Build output
+dist/
+build/
