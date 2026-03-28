@@ -1,49 +1,103 @@
 package services
 
 import (
-	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"os"
+	"strings"
 
 	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 )
 
-// IDGenerator provides utilities for generating IDs
-type IDGenerator struct{}
+// IDGenerator handles device ID and client key generation
+type IDGenerator struct {
+	envPath string
+}
 
-// NewIDGenerator creates a new IDGenerator instance
-func NewIDGenerator() *IDGenerator {
-	return &IDGenerator{}
+// NewIDGenerator creates a new ID generator
+func NewIDGenerator(envPath string) *IDGenerator {
+	return &IDGenerator{
+		envPath: envPath,
+	}
 }
 
 // GenerateUUID generates a new UUID v4
 func (g *IDGenerator) GenerateUUID() string {
-	return uuid.Must(uuid.NewRandom()).String()
+	return uuid.New().String()
 }
 
-// GenerateClientKey generates a random client key
-func (g *IDGenerator) GenerateClientKey(length int) string {
-	if length <= 0 {
-		length = 32
-	}
-	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
-		return ""
-	}
-	return hex.EncodeToString(bytes)
+// GenerateClientKey generates a random client key using SHA256
+func (g *IDGenerator) GenerateClientKey() string {
+	uuid := g.GenerateUUID()
+	hash := sha256.Sum256([]byte(uuid))
+	return hex.EncodeToString(hash[:])
 }
 
-// GenerateDeviceID generates a device ID from config or auto-generates
-func (g *IDGenerator) GenerateDeviceID(configValue string) string {
-	if configValue != "" {
-		return configValue
+// GetOrCreateDeviceID gets device ID from env or generates and saves it
+func (g *IDGenerator) GetOrCreateDeviceID() (string, error) {
+	// Load .env
+	env, err := godotenv.Read(g.envPath)
+	if err != nil {
+		// If .env doesn't exist, create it
+		env = make(map[string]string)
 	}
-	return g.GenerateUUID()
+
+	deviceID := strings.TrimSpace(env["DEVICE_ID"])
+
+	// Generate if empty
+	if deviceID == "" {
+		deviceID = g.GenerateUUID()
+		env["DEVICE_ID"] = deviceID
+		
+		// Save to .env
+		if err := g.saveEnv(env); err != nil {
+			return deviceID, fmt.Errorf("failed to save device_id: %w", err)
+		}
+	}
+
+	return deviceID, nil
 }
 
-// GenerateClientKeyFromConfig generates a client key from config or auto-generates
-func (g *IDGenerator) GenerateClientKeyFromConfig(configValue string) string {
-	if configValue != "" {
-		return configValue
+// GetOrCreateClientKey gets client key from env or generates and saves it
+func (g *IDGenerator) GetOrCreateClientKey() (string, error) {
+	// Load .env
+	env, err := godotenv.Read(g.envPath)
+	if err != nil {
+		env = make(map[string]string)
 	}
-	return g.GenerateClientKey(32)
+
+	clientKey := strings.TrimSpace(env["CLIENT_KEY"])
+
+	// Generate if empty
+	if clientKey == "" {
+		clientKey = g.GenerateClientKey()
+		env["CLIENT_KEY"] = clientKey
+		
+		// Save to .env
+		if err := g.saveEnv(env); err != nil {
+			return clientKey, fmt.Errorf("failed to save client_key: %w", err)
+		}
+	}
+
+	return clientKey, nil
+}
+
+// saveEnv saves environment variables to .env file
+func (g *IDGenerator) saveEnv(env map[string]string) error {
+	// Create .env content
+	var content strings.Builder
+	
+	// Write header
+	content.WriteString("# Device Configuration\n")
+	content.WriteString("# Auto-generated - Do not edit manually unless needed\n\n")
+	
+	// Write all env vars
+	for key, value := range env {
+		content.WriteString(fmt.Sprintf("%s=%s\n", key, value))
+	}
+	
+	// Write to file
+	return os.WriteFile(g.envPath, []byte(content.String()), 0644)
 }
