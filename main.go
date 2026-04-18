@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"getdevice-api/handlers"
+	"getdevice-api/middleware"
 	"getdevice-api/services"
 )
 
@@ -44,7 +45,7 @@ func main() {
 	fmt.Printf("  - GET /getdevice\n")
 	fmt.Printf("\nPress Ctrl+C to stop\n")
 
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	if err := http.ListenAndServe(addr, middleware.CORS(mux)); err != nil {
 		log.Fatal("Server failed to start:", err)
 	}
 }
