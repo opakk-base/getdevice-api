@@ -5,9 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/joho/godotenv"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"getdevice-api/handlers"
 	"getdevice-api/middleware"
@@ -33,6 +38,16 @@ type ServerStatus struct {
 	Port    string `json:"port"`
 }
 
+// AppInfo holds metadata for the About page
+type AppInfo struct {
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	Author      string `json:"author"`
+	Description string `json:"description"`
+	License     string `json:"license"`
+	GitHub      string `json:"github"`
+}
+
 // App struct provides Wails bindings to the frontend
 type App struct {
 	ctx           context.Context
@@ -41,28 +56,46 @@ type App struct {
 	port          string
 	running       bool
 	exposedFields map[string]bool
+	closeBehavior string // "exit" or "minimize"
+	envPath       string
 	mu            sync.Mutex
 }
 
 // NewApp creates a new App instance with all fields exposed by default
-func NewApp(service *services.DeviceService, port string) *App {
+func NewApp(service *services.DeviceService, port string, closeBehavior string, envPath string) *App {
 	exposed := make(map[string]bool)
 	for _, f := range allFields {
 		exposed[f] = true
+	}
+	if closeBehavior != "minimize" {
+		closeBehavior = "exit"
 	}
 	return &App{
 		service:       service,
 		port:          port,
 		exposedFields: exposed,
+		closeBehavior: closeBehavior,
+		envPath:       envPath,
 	}
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
+// startup is called when the app starts
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	// Auto-start the HTTP server on launch
 	a.StartServer()
+}
+
+// beforeClose is called when the user tries to close the window
+func (a *App) beforeClose(ctx context.Context) bool {
+	a.mu.Lock()
+	behavior := a.closeBehavior
+	a.mu.Unlock()
+
+	if behavior == "minimize" {
+		wailsRuntime.WindowHide(a.ctx)
+		return true // prevent quit — hide window, server keeps running
+	}
+	return false // allow quit
 }
 
 // ---------- Device Info ----------
@@ -86,7 +119,6 @@ func (a *App) filterFields(info *services.DeviceInfo) map[string]interface{} {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	// Marshal to JSON then unmarshal to map to get all fields dynamically
 	raw, _ := json.Marshal(info)
 	var full map[string]interface{}
 	json.Unmarshal(raw, &full)
@@ -107,11 +139,9 @@ func (a *App) SetExposedFields(fields []string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	// Reset all to false
 	for k := range a.exposedFields {
 		a.exposedFields[k] = false
 	}
-	// Enable only the provided fields
 	for _, f := range fields {
 		a.exposedFields[f] = true
 	}
@@ -143,11 +173,8 @@ func (a *App) StartServer() error {
 	}
 
 	mux := http.NewServeMux()
-
-	// Create a handler that uses the app's field filter
 	deviceHandler := handlers.NewDeviceHandler(a.service)
 
-	// Filtered /getdevice endpoint — respects exposed fields
 	mux.HandleFunc("/getdevice", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
@@ -210,7 +237,6 @@ func (a *App) StopServer() error {
 
 // SetPort changes the server port. If the server is running, it restarts on the new port.
 func (a *App) SetPort(port string) error {
-	// Validate port
 	p, err := strconv.Atoi(port)
 	if err != nil || p < 1 || p > 65535 {
 		return fmt.Errorf("invalid port: must be 1-65535")
@@ -249,5 +275,62 @@ func (a *App) GetServerStatus() ServerStatus {
 	return ServerStatus{
 		Running: a.running,
 		Port:    a.port,
+	}
+}
+
+// ---------- Settings ----------
+
+// GetCloseBehavior returns the current close behavior setting
+func (a *App) GetCloseBehavior() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.closeBehavior
+}
+
+// SetCloseBehavior sets the close behavior and persists to .env
+func (a *App) SetCloseBehavior(behavior string) error {
+	if behavior != "exit" && behavior != "minimize" {
+		return fmt.Errorf("invalid behavior: must be 'exit' or 'minimize'")
+	}
+
+	a.mu.Lock()
+	a.closeBehavior = behavior
+	a.mu.Unlock()
+
+	// Persist to .env
+	return a.saveEnvKey("CLOSE_BEHAVIOR", behavior)
+}
+
+// saveEnvKey reads the .env file, sets a key, and writes it back
+func (a *App) saveEnvKey(key, value string) error {
+	env, err := godotenv.Read(a.envPath)
+	if err != nil {
+		env = make(map[string]string)
+	}
+
+	env[key] = value
+
+	var content strings.Builder
+	content.WriteString("# Device Configuration\n")
+	content.WriteString("# Auto-generated - Do not edit manually unless needed\n\n")
+
+	for k, v := range env {
+		content.WriteString(fmt.Sprintf("%s=%s\n", k, v))
+	}
+
+	return os.WriteFile(a.envPath, []byte(content.String()), 0644)
+}
+
+// ---------- About ----------
+
+// GetAppInfo returns app metadata for the About page
+func (a *App) GetAppInfo() AppInfo {
+	return AppInfo{
+		Name:        "GetDevice",
+		Version:     "1.1.0",
+		Author:      "opakk",
+		Description: "A native desktop application that exposes device information via a REST API on a single port.",
+		License:     "MIT",
+		GitHub:      "https://github.com/opakk-base/getdevice-api",
 	}
 }

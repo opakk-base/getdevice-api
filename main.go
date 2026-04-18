@@ -28,21 +28,29 @@ func main() {
 		port = "8080"
 	}
 
+	// Get close behavior from environment or use default
+	closeBehavior := os.Getenv("CLOSE_BEHAVIOR")
+	if closeBehavior != "minimize" {
+		closeBehavior = "exit"
+	}
+
 	// Initialize services
 	envPath := ".env"
 	deviceService := services.NewDeviceService(envPath)
 
 	// Create Wails app (server starts automatically in OnStartup)
-	app := NewApp(deviceService, port)
+	app := NewApp(deviceService, port, closeBehavior, envPath)
 
 	err := wails.Run(&options.App{
-		Title:  "GetDevice",
-		Width:  520,
-		Height: 780,
+		Title:            "GetDevice",
+		Width:            420,
+		Height:           220,
+		BackgroundColour: &options.RGBA{R: 15, G: 17, B: 23, A: 255},
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		OnStartup: app.startup,
+		OnStartup:    app.startup,
+		OnBeforeClose: app.beforeClose,
 		Bind: []interface{}{
 			app,
 		},

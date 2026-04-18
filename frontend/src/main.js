@@ -1,6 +1,3 @@
-// Current device info (full, for display)
-let currentDeviceInfo = null;
-
 // Track which fields are exposed
 let exposedFields = new Set([
     "device_id",
@@ -14,19 +11,6 @@ let exposedFields = new Set([
     "timestamp",
 ]);
 
-// All field IDs
-const allFields = [
-    "device_id",
-    "device_name",
-    "client_key",
-    "hostname",
-    "os",
-    "arch",
-    "mac_address",
-    "ip_address",
-    "timestamp",
-];
-
 // Port change debounce timer
 let portDebounceTimer = null;
 
@@ -34,137 +18,57 @@ let portDebounceTimer = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
     await initState();
-    await loadDeviceInfo();
     setupPortInput();
 });
 
-// Load initial state from Go backend
 async function initState() {
     try {
-        // Get current exposed fields
-        const fields = await window.go.main.App.GetExposedFields();
-        exposedFields = new Set(fields);
-
-        // Sync checkboxes with backend state
-        allFields.forEach((field) => {
-            const card = document.querySelector(`[data-field="${field}"]`);
-            // OS and arch share a card
-            if (!card && (field === "os" || field === "arch")) return;
-            const checkbox = card
-                ? card.querySelector(`input[onchange*="${field}"]`)
-                : null;
-            if (checkbox) {
-                checkbox.checked = exposedFields.has(field);
-            }
-            updateCardState(field);
-        });
-
-        // Also sync os/arch checkboxes in the split card
-        const osArchCard = document.querySelector('[data-field="os_arch"]');
-        if (osArchCard) {
-            const checkboxes = osArchCard.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach((cb) => {
-                const match = cb.getAttribute("onchange").match(/toggleField\('(\w+)'/);
-                if (match) {
-                    cb.checked = exposedFields.has(match[1]);
-                }
-            });
-        }
-
-        // Get server status
+        // Get server status and set port input
         const status = await window.go.main.App.GetServerStatus();
         updateServerUI(status);
-
-        // Set port input
         document.getElementById("port-input").value = status.port;
     } catch (err) {
         console.error("Failed to init state:", err);
     }
 }
 
-// ========== Device Info ==========
+// ========== Tab Navigation ==========
 
-async function loadDeviceInfo() {
-    const btn = document.getElementById("refresh-btn");
-    const errorEl = document.getElementById("error-msg");
+function switchTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll(".tab-content").forEach((el) => {
+        el.classList.remove("active");
+    });
 
-    btn.classList.add("loading");
-    btn.textContent = "Loading...";
-    errorEl.classList.add("hidden");
+    // Deactivate all tabs
+    document.querySelectorAll(".tab-bar .tab").forEach((el) => {
+        el.classList.remove("active");
+    });
 
-    try {
-        const info = await window.go.main.App.GetDeviceInfo();
-        currentDeviceInfo = info;
-
-        allFields.forEach((field) => {
-            const el = document.getElementById(field);
-            if (el) {
-                el.textContent = info[field] || "N/A";
-                el.classList.remove("loading");
-            }
-        });
-    } catch (err) {
-        errorEl.textContent = "Failed to load device info: " + err;
-        errorEl.classList.remove("hidden");
-    } finally {
-        btn.classList.remove("loading");
-        btn.textContent = "Refresh";
-    }
-}
-
-// ========== Field Toggles ==========
-
-async function toggleField(field, checked) {
-    if (checked) {
-        exposedFields.add(field);
-    } else {
-        exposedFields.delete(field);
+    // Show selected tab content
+    const tabContent = document.getElementById("tab-" + tabName);
+    if (tabContent) {
+        tabContent.classList.add("active");
     }
 
-    updateCardState(field);
-
-    // Send updated fields to Go backend
-    try {
-        await window.go.main.App.SetExposedFields(Array.from(exposedFields));
-    } catch (err) {
-        console.error("Failed to update exposed fields:", err);
-    }
-}
-
-function updateCardState(field) {
-    // Find the card for this field
-    let card = document.querySelector(`[data-field="${field}"]`);
-
-    // OS and arch are in a shared card — handle individually
-    if (field === "os" || field === "arch") {
-        const valueEl = document.getElementById(field);
-        if (valueEl) {
-            if (exposedFields.has(field)) {
-                valueEl.style.opacity = "1";
-                valueEl.style.textDecoration = "none";
-            } else {
-                valueEl.style.opacity = "0.4";
-                valueEl.style.textDecoration = "line-through";
-            }
-        }
-        return;
+    // Activate selected tab button
+    const tabs = document.querySelectorAll(".tab-bar .tab");
+    const tabIndex = { device: 0, settings: 1, about: 2 };
+    if (tabs[tabIndex[tabName]]) {
+        tabs[tabIndex[tabName]].classList.add("active");
     }
 
-    if (card) {
-        if (exposedFields.has(field)) {
-            card.classList.remove("disabled");
-        } else {
-            card.classList.add("disabled");
-        }
+    // Load data for the tab if needed
+    if (tabName === "settings") {
+        loadSettings();
+    } else if (tabName === "about") {
+        loadAboutInfo();
     }
 }
 
 // ========== Server Controls ==========
 
 async function toggleServer() {
-    const btn = document.getElementById("server-btn");
-    const btnText = document.getElementById("server-btn-text");
-
     try {
         const status = await window.go.main.App.GetServerStatus();
 
@@ -174,15 +78,12 @@ async function toggleServer() {
             await window.go.main.App.StartServer();
         }
 
-        // Small delay for server to start/stop
         await new Promise((r) => setTimeout(r, 200));
 
-        // Refresh status
         const newStatus = await window.go.main.App.GetServerStatus();
         updateServerUI(newStatus);
     } catch (err) {
         console.error("Server toggle error:", err);
-        // Refresh status anyway
         try {
             const s = await window.go.main.App.GetServerStatus();
             updateServerUI(s);
@@ -195,7 +96,6 @@ function updateServerUI(status) {
     const btnText = document.getElementById("server-btn-text");
     const statusBar = document.getElementById("status-bar");
     const statusText = document.getElementById("status-text");
-    const portDisplay = document.getElementById("port-display");
 
     if (status.running) {
         btn.className = "server-btn running";
@@ -216,10 +116,8 @@ function setupPortInput() {
     const input = document.getElementById("port-input");
 
     input.addEventListener("input", () => {
-        // Only allow digits
         input.value = input.value.replace(/[^0-9]/g, "");
 
-        // Validate
         const port = parseInt(input.value, 10);
         if (input.value && (isNaN(port) || port < 1 || port > 65535)) {
             input.classList.add("invalid");
@@ -227,7 +125,6 @@ function setupPortInput() {
             input.classList.remove("invalid");
         }
 
-        // Debounce the port change
         clearTimeout(portDebounceTimer);
         if (input.value && !isNaN(port) && port >= 1 && port <= 65535) {
             portDebounceTimer = setTimeout(() => applyPort(input.value), 800);
@@ -248,8 +145,6 @@ function setupPortInput() {
 async function applyPort(port) {
     try {
         await window.go.main.App.SetPort(port);
-
-        // Small delay for restart
         await new Promise((r) => setTimeout(r, 300));
 
         const status = await window.go.main.App.GetServerStatus();
@@ -263,36 +158,78 @@ async function applyPort(port) {
     }
 }
 
-// ========== Copy JSON ==========
+// ========== Settings ==========
 
-async function copyAsJSON() {
-    if (!currentDeviceInfo) return;
-
-    const btn = document.getElementById("copy-btn");
-
+async function loadSettings() {
     try {
-        // Build filtered JSON based on exposed fields
-        const filtered = {};
-        allFields.forEach((field) => {
-            if (exposedFields.has(field)) {
-                filtered[field] = currentDeviceInfo[field];
-            }
+        // Load close behavior
+        const behavior = await window.go.main.App.GetCloseBehavior();
+        const radios = document.querySelectorAll('input[name="close-behavior"]');
+        radios.forEach((radio) => {
+            radio.checked = radio.value === behavior;
         });
 
-        const json = JSON.stringify(filtered, null, 2);
-        await navigator.clipboard.writeText(json);
+        // Load exposed fields
+        const fields = await window.go.main.App.GetExposedFields();
+        exposedFields = new Set(fields);
 
-        btn.classList.add("copied");
-        btn.textContent = "Copied!";
-
-        setTimeout(() => {
-            btn.classList.remove("copied");
-            btn.textContent = "Copy JSON";
-        }, 1500);
+        // Sync checkboxes
+        document.querySelectorAll(".field-toggle input[type='checkbox']").forEach((cb) => {
+            const field = cb.getAttribute("data-field");
+            if (field) {
+                cb.checked = exposedFields.has(field);
+            }
+        });
     } catch (err) {
-        btn.textContent = "Failed";
-        setTimeout(() => {
-            btn.textContent = "Copy JSON";
-        }, 1500);
+        console.error("Failed to load settings:", err);
+    }
+}
+
+async function toggleField(field, checked) {
+    if (checked) {
+        exposedFields.add(field);
+    } else {
+        exposedFields.delete(field);
+    }
+
+    try {
+        await window.go.main.App.SetExposedFields(Array.from(exposedFields));
+    } catch (err) {
+        console.error("Failed to update exposed fields:", err);
+    }
+}
+
+async function setCloseBehavior(value) {
+    try {
+        await window.go.main.App.SetCloseBehavior(value);
+    } catch (err) {
+        console.error("Failed to set close behavior:", err);
+    }
+}
+
+// ========== About ==========
+
+async function loadAboutInfo() {
+    try {
+        const info = await window.go.main.App.GetAppInfo();
+        document.getElementById("about-name").textContent = info.name;
+        document.getElementById("about-version").textContent = "v" + info.version;
+        document.getElementById("about-desc").textContent = info.description;
+        document.getElementById("about-author").textContent = info.author;
+        document.getElementById("about-license").textContent = info.license;
+
+        const link = document.getElementById("about-github");
+        link.href = info.github;
+        link.textContent = info.github.replace("https://github.com/", "");
+    } catch (err) {
+        console.error("Failed to load about info:", err);
+    }
+}
+
+function openGitHub(event) {
+    event.preventDefault();
+    const url = document.getElementById("about-github").href;
+    if (url && url !== "#") {
+        window.runtime.BrowserOpenURL(url);
     }
 }

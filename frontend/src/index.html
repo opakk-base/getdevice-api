@@ -10,135 +10,137 @@
     <div class="container">
         <header>
             <h1>GetDevice</h1>
-            <p class="subtitle">Device Information</p>
         </header>
 
-        <!-- Server Controls -->
-        <div class="server-controls">
-            <div class="control-row">
-                <div class="port-group">
-                    <label for="port-input">Port</label>
-                    <input type="text" id="port-input" value="8080" maxlength="5" placeholder="8080">
+        <!-- Tab Bar -->
+        <nav class="tab-bar">
+            <button class="tab active" onclick="switchTab('device')">Device</button>
+            <button class="tab" onclick="switchTab('settings')">Settings</button>
+            <button class="tab" onclick="switchTab('about')">About</button>
+        </nav>
+
+        <!-- ==================== Device Tab ==================== -->
+        <div id="tab-device" class="tab-content active">
+            <div class="server-controls">
+                <div class="control-row">
+                    <div class="port-group">
+                        <label for="port-input">Port</label>
+                        <input type="text" id="port-input" value="8080" maxlength="5" placeholder="8080">
+                    </div>
+                    <button id="server-btn" class="server-btn running" onclick="toggleServer()">
+                        <span class="server-btn-icon"></span>
+                        <span id="server-btn-text">Stop Server</span>
+                    </button>
                 </div>
-                <button id="server-btn" class="server-btn running" onclick="toggleServer()">
-                    <span class="server-btn-icon"></span>
-                    <span id="server-btn-text">Stop Server</span>
-                </button>
-            </div>
-            <div id="status-bar" class="status-bar">
-                <span class="status-dot"></span>
-                <span id="status-text">Running on port <span id="port-display">8080</span></span>
+                <div id="status-bar" class="status-bar">
+                    <span class="status-dot"></span>
+                    <span id="status-text">Running on port <span id="port-display">8080</span></span>
+                </div>
             </div>
         </div>
 
-        <!-- Device Info Cards with Checkboxes -->
-        <div id="device-info" class="card-grid">
-            <div class="card" data-field="device_id">
-                <div class="card-header">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleField('device_id', this.checked)">
+        <!-- ==================== Settings Tab ==================== -->
+        <div id="tab-settings" class="tab-content">
+            <div class="settings-section">
+                <div class="settings-title">Exposed Fields</div>
+                <p class="settings-desc">Select which fields are included in the API response.</p>
+                <div class="field-list">
+                    <label class="field-toggle">
+                        <input type="checkbox" data-field="device_id" checked onchange="toggleField('device_id', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-name">Device ID</span>
+                        <span class="field-toggle-text">Device ID</span>
                     </label>
-                </div>
-                <span id="device_id" class="value mono">Loading...</span>
-            </div>
-
-            <div class="card" data-field="device_name">
-                <div class="card-header">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleField('device_name', this.checked)">
+                    <label class="field-toggle">
+                        <input type="checkbox" data-field="device_name" checked onchange="toggleField('device_name', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-name">Device Name</span>
+                        <span class="field-toggle-text">Device Name</span>
                     </label>
-                </div>
-                <span id="device_name" class="value">Loading...</span>
-            </div>
-
-            <div class="card" data-field="client_key">
-                <div class="card-header">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleField('client_key', this.checked)">
+                    <label class="field-toggle">
+                        <input type="checkbox" data-field="client_key" checked onchange="toggleField('client_key', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-name">Client Key</span>
+                        <span class="field-toggle-text">Client Key</span>
                     </label>
-                </div>
-                <span id="client_key" class="value mono small">Loading...</span>
-            </div>
-
-            <div class="card" data-field="hostname">
-                <div class="card-header">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleField('hostname', this.checked)">
+                    <label class="field-toggle">
+                        <input type="checkbox" data-field="hostname" checked onchange="toggleField('hostname', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-name">Hostname</span>
+                        <span class="field-toggle-text">Hostname</span>
                     </label>
-                </div>
-                <span id="hostname" class="value">Loading...</span>
-            </div>
-
-            <div class="card two-col" data-field="os_arch">
-                <div class="card-header split-header">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleField('os', this.checked)">
+                    <label class="field-toggle">
+                        <input type="checkbox" data-field="os" checked onchange="toggleField('os', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-name">OS</span>
+                        <span class="field-toggle-text">OS</span>
                     </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleField('arch', this.checked)">
+                    <label class="field-toggle">
+                        <input type="checkbox" data-field="arch" checked onchange="toggleField('arch', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-name">Architecture</span>
+                        <span class="field-toggle-text">Architecture</span>
                     </label>
-                </div>
-                <div class="split">
-                    <div>
-                        <span id="os" class="value">Loading...</span>
-                    </div>
-                    <div>
-                        <span id="arch" class="value">Loading...</span>
-                    </div>
+                    <label class="field-toggle">
+                        <input type="checkbox" data-field="mac_address" checked onchange="toggleField('mac_address', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-toggle-text">MAC Address</span>
+                    </label>
+                    <label class="field-toggle">
+                        <input type="checkbox" data-field="ip_address" checked onchange="toggleField('ip_address', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-toggle-text">IP Address</span>
+                    </label>
+                    <label class="field-toggle">
+                        <input type="checkbox" data-field="timestamp" checked onchange="toggleField('timestamp', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-toggle-text">Timestamp</span>
+                    </label>
                 </div>
             </div>
 
-            <div class="card" data-field="mac_address">
-                <div class="card-header">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleField('mac_address', this.checked)">
-                        <span class="checkmark"></span>
-                        <span class="field-name">MAC Address</span>
+            <div class="settings-section">
+                <div class="settings-title">Close Behavior</div>
+                <p class="settings-desc">Choose what happens when you close the window.</p>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="close-behavior" value="exit" checked onchange="setCloseBehavior('exit')">
+                        <span class="radio-mark"></span>
+                        <div class="radio-content">
+                            <span class="radio-text">Exit application</span>
+                            <span class="radio-hint">Closing the window quits the app and stops the server.</span>
+                        </div>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="close-behavior" value="minimize" onchange="setCloseBehavior('minimize')">
+                        <span class="radio-mark"></span>
+                        <div class="radio-content">
+                            <span class="radio-text">Minimize to tray</span>
+                            <span class="radio-hint">Window hides but the HTTP server keeps running in the background. Click the dock icon to show again.</span>
+                        </div>
                     </label>
                 </div>
-                <span id="mac_address" class="value mono">Loading...</span>
-            </div>
-
-            <div class="card" data-field="ip_address">
-                <div class="card-header">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleField('ip_address', this.checked)">
-                        <span class="checkmark"></span>
-                        <span class="field-name">IP Address</span>
-                    </label>
-                </div>
-                <span id="ip_address" class="value mono">Loading...</span>
-            </div>
-
-            <div class="card" data-field="timestamp">
-                <div class="card-header">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleField('timestamp', this.checked)">
-                        <span class="checkmark"></span>
-                        <span class="field-name">Timestamp</span>
-                    </label>
-                </div>
-                <span id="timestamp" class="value">Loading...</span>
             </div>
         </div>
 
-        <div id="error-msg" class="error hidden"></div>
-
-        <div class="actions">
-            <button id="refresh-btn" onclick="loadDeviceInfo()">Refresh</button>
-            <button id="copy-btn" class="secondary" onclick="copyAsJSON()">Copy JSON</button>
+        <!-- ==================== About Tab ==================== -->
+        <div id="tab-about" class="tab-content">
+            <div class="about-content">
+                <div class="about-icon">D</div>
+                <div class="about-name" id="about-name">GetDevice</div>
+                <div class="about-version" id="about-version">v1.1.0</div>
+                <p class="about-desc" id="about-desc">
+                    A native desktop application that exposes device information via a REST API on a single port.
+                </p>
+                <div class="about-meta">
+                    <div class="about-row">
+                        <span class="about-label">Author</span>
+                        <span class="about-value" id="about-author">opakk</span>
+                    </div>
+                    <div class="about-row">
+                        <span class="about-label">License</span>
+                        <span class="about-value" id="about-license">MIT</span>
+                    </div>
+                    <div class="about-row">
+                        <span class="about-label">Source</span>
+                        <a class="about-link" id="about-github" href="#" onclick="openGitHub(event)">opakk-base/getdevice-api</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

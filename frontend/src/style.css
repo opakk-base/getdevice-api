@@ -11,15 +11,12 @@
     --border: #2a2e3a;
     --text: #e4e6eb;
     --text-secondary: #8b8fa3;
-    --text-disabled: #4a4e5a;
     --accent: #6c8cff;
     --accent-dim: rgba(108, 140, 255, 0.12);
     --green: #4ade80;
     --green-dim: rgba(74, 222, 128, 0.12);
     --red: #f87171;
     --red-dim: rgba(248, 113, 113, 0.12);
-    --yellow: #facc15;
-    --yellow-dim: rgba(250, 204, 21, 0.12);
     --radius: 10px;
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
@@ -38,30 +35,66 @@ body {
 .container {
     max-width: 480px;
     margin: 0 auto;
-    padding: 24px 24px;
+    padding: 20px 24px;
 }
 
 header {
     text-align: center;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
 header h1 {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     letter-spacing: -0.3px;
     color: var(--text);
 }
 
-.subtitle {
-    font-size: 13px;
+/* ========== Tab Bar ========== */
+.tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+    --wails-draggable: no-drag;
+}
+
+.tab {
+    flex: 1;
+    padding: 10px 0;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
     color: var(--text-secondary);
-    margin-top: 4px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    border-radius: 0;
+}
+
+.tab:hover {
+    color: var(--text);
+}
+
+.tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+}
+
+/* ========== Tab Content ========== */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
 }
 
 /* ========== Server Controls ========== */
 .server-controls {
-    margin-bottom: 12px;
     --wails-draggable: no-drag;
 }
 
@@ -210,58 +243,66 @@ header h1 {
     background: var(--red);
 }
 
-/* ========== Card Grid ========== */
-.card-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 10px 14px;
-    transition: opacity 0.2s;
-    --wails-draggable: no-drag;
-}
-
-.card.disabled {
-    opacity: 0.4;
-}
-
-.card.disabled .value {
-    text-decoration: line-through;
-    color: var(--text-disabled);
-}
-
-/* Card header with checkbox */
-.card-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 4px;
-}
-
-.split-header {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 14px;
-    padding-top: 10px;
-}
-
-/* ========== Custom Checkbox ========== */
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    user-select: none;
-}
-
-.checkbox-label input[type="checkbox"] {
+.hidden {
     display: none;
 }
 
+/* ========== Settings Page ========== */
+.settings-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 10px;
+    --wails-draggable: no-drag;
+}
+
+.settings-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.settings-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+}
+
+/* ========== Field Toggle List ========== */
+.field-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.field-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s;
+    user-select: none;
+}
+
+.field-toggle:hover {
+    background: var(--surface-hover);
+}
+
+.field-toggle input[type="checkbox"] {
+    display: none;
+}
+
+.field-toggle-text {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+}
+
+/* Custom Checkbox */
 .checkmark {
     width: 16px;
     height: 16px;
@@ -274,11 +315,13 @@ header h1 {
     transition: background 0.15s, border-color 0.15s;
 }
 
+.field-toggle input[type="checkbox"]:checked + .checkmark,
 .checkbox-label input[type="checkbox"]:checked + .checkmark {
     background: var(--accent);
     border-color: var(--accent);
 }
 
+.field-toggle input[type="checkbox"]:checked + .checkmark::after,
 .checkbox-label input[type="checkbox"]:checked + .checkmark::after {
     content: "";
     width: 4px;
@@ -288,136 +331,175 @@ header h1 {
     transform: rotate(45deg) translateY(-1px);
 }
 
-.field-name {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-secondary);
+/* ========== Radio Group ========== */
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-/* Card values */
-.card .value {
-    display: block;
-    font-size: 14px;
-    color: var(--text);
-    word-break: break-all;
-    user-select: text;
+.radio-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    transition: background 0.15s, border-color 0.15s;
 }
 
-.card .value.mono {
-    font-family: var(--mono);
-    font-size: 13px;
+.radio-label:hover {
+    background: var(--surface-hover);
 }
 
-.card .value.small {
-    font-size: 11px;
-    line-height: 1.5;
-}
-
-/* Two-column split card */
-.card.two-col {
-    padding: 0;
-}
-
-.card.two-col .card-header {
-    margin-bottom: 0;
-}
-
-.split {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-}
-
-.split > div {
-    padding: 6px 14px 10px;
-}
-
-.split > div:first-child {
-    border-right: 1px solid var(--border);
-}
-
-/* ========== Error ========== */
-.error {
-    padding: 12px 14px;
-    background: var(--red-dim);
-    border: 1px solid rgba(248, 113, 113, 0.2);
-    border-radius: var(--radius);
-    color: var(--red);
-    font-size: 13px;
-    margin-top: 12px;
-}
-
-.hidden {
+.radio-label input[type="radio"] {
     display: none;
 }
 
-/* ========== Action Buttons ========== */
-.actions {
+.radio-mark {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    flex-shrink: 0;
     display: flex;
-    gap: 8px;
-    margin-top: 12px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+    transition: border-color 0.15s;
 }
 
-button {
-    flex: 1;
-    padding: 10px 16px;
-    border: none;
-    border-radius: var(--radius);
-    font-family: var(--font);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
-    --wails-draggable: no-drag;
+.radio-label input[type="radio"]:checked ~ .radio-mark {
+    border-color: var(--accent);
 }
 
-button:active {
-    transform: scale(0.98);
-}
-
-#refresh-btn {
+.radio-label input[type="radio"]:checked ~ .radio-mark::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
     background: var(--accent);
-    color: #fff;
 }
 
-#refresh-btn:hover {
-    background: #5a7af0;
-}
-
-#refresh-btn.loading {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-button.secondary {
-    background: var(--surface);
-    color: var(--text-secondary);
-    border: 1px solid var(--border);
-}
-
-button.secondary:hover {
-    background: var(--surface-hover);
+.radio-label input[type="radio"]:checked ~ .radio-content .radio-text {
     color: var(--text);
 }
 
-button.copied {
-    background: var(--green-dim);
-    color: var(--green);
-    border-color: rgba(74, 222, 128, 0.2);
+.radio-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-/* ========== Loading Skeleton ========== */
-.value.loading {
-    background: linear-gradient(90deg, var(--surface) 25%, var(--surface-hover) 50%, var(--surface) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    border-radius: 4px;
-    color: transparent;
-    min-height: 20px;
+.radio-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: color 0.15s;
 }
 
-@keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+.radio-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    opacity: 0.7;
+}
+
+/* ========== About Page ========== */
+.about-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    --wails-draggable: no-drag;
+}
+
+.about-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(108, 140, 255, 0.2);
+    color: var(--accent);
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.about-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.about-version {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+}
+
+.about-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.5;
+    max-width: 340px;
+    margin-bottom: 20px;
+}
+
+.about-meta {
+    width: 100%;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.about-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.about-row:last-child {
+    border-bottom: none;
+}
+
+.about-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.about-value {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.about-link {
+    font-size: 13px;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.about-link:hover {
+    text-decoration: underline;
 }
