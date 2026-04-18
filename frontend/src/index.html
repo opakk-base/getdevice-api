@@ -13,50 +13,123 @@
             <p class="subtitle">Device Information</p>
         </header>
 
-        <div id="status-bar" class="status-bar">
-            <span class="status-dot"></span>
-            <span id="status-text">API running on port <span id="port">8080</span></span>
+        <!-- Server Controls -->
+        <div class="server-controls">
+            <div class="control-row">
+                <div class="port-group">
+                    <label for="port-input">Port</label>
+                    <input type="text" id="port-input" value="8080" maxlength="5" placeholder="8080">
+                </div>
+                <button id="server-btn" class="server-btn running" onclick="toggleServer()">
+                    <span class="server-btn-icon"></span>
+                    <span id="server-btn-text">Stop Server</span>
+                </button>
+            </div>
+            <div id="status-bar" class="status-bar">
+                <span class="status-dot"></span>
+                <span id="status-text">Running on port <span id="port-display">8080</span></span>
+            </div>
         </div>
 
+        <!-- Device Info Cards with Checkboxes -->
         <div id="device-info" class="card-grid">
-            <div class="card">
-                <label>Device ID</label>
+            <div class="card" data-field="device_id">
+                <div class="card-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" checked onchange="toggleField('device_id', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-name">Device ID</span>
+                    </label>
+                </div>
                 <span id="device_id" class="value mono">Loading...</span>
             </div>
-            <div class="card">
-                <label>Device Name</label>
+
+            <div class="card" data-field="device_name">
+                <div class="card-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" checked onchange="toggleField('device_name', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-name">Device Name</span>
+                    </label>
+                </div>
                 <span id="device_name" class="value">Loading...</span>
             </div>
-            <div class="card">
-                <label>Client Key</label>
+
+            <div class="card" data-field="client_key">
+                <div class="card-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" checked onchange="toggleField('client_key', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-name">Client Key</span>
+                    </label>
+                </div>
                 <span id="client_key" class="value mono small">Loading...</span>
             </div>
-            <div class="card">
-                <label>Hostname</label>
+
+            <div class="card" data-field="hostname">
+                <div class="card-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" checked onchange="toggleField('hostname', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-name">Hostname</span>
+                    </label>
+                </div>
                 <span id="hostname" class="value">Loading...</span>
             </div>
-            <div class="card two-col">
+
+            <div class="card two-col" data-field="os_arch">
+                <div class="card-header split-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" checked onchange="toggleField('os', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-name">OS</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" checked onchange="toggleField('arch', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-name">Architecture</span>
+                    </label>
+                </div>
                 <div class="split">
                     <div>
-                        <label>OS</label>
                         <span id="os" class="value">Loading...</span>
                     </div>
                     <div>
-                        <label>Architecture</label>
                         <span id="arch" class="value">Loading...</span>
                     </div>
                 </div>
             </div>
-            <div class="card">
-                <label>MAC Address</label>
+
+            <div class="card" data-field="mac_address">
+                <div class="card-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" checked onchange="toggleField('mac_address', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-name">MAC Address</span>
+                    </label>
+                </div>
                 <span id="mac_address" class="value mono">Loading...</span>
             </div>
-            <div class="card">
-                <label>IP Address</label>
+
+            <div class="card" data-field="ip_address">
+                <div class="card-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" checked onchange="toggleField('ip_address', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-name">IP Address</span>
+                    </label>
+                </div>
                 <span id="ip_address" class="value mono">Loading...</span>
             </div>
-            <div class="card">
-                <label>Timestamp</label>
+
+            <div class="card" data-field="timestamp">
+                <div class="card-header">
+                    <label class="checkbox-label">
+                        <input type="checkbox" checked onchange="toggleField('timestamp', this.checked)">
+                        <span class="checkmark"></span>
+                        <span class="field-name">Timestamp</span>
+                    </label>
+                </div>
                 <span id="timestamp" class="value">Loading...</span>
             </div>
         </div>

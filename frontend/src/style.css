@@ -11,12 +11,15 @@
     --border: #2a2e3a;
     --text: #e4e6eb;
     --text-secondary: #8b8fa3;
+    --text-disabled: #4a4e5a;
     --accent: #6c8cff;
     --accent-dim: rgba(108, 140, 255, 0.12);
     --green: #4ade80;
     --green-dim: rgba(74, 222, 128, 0.12);
     --red: #f87171;
     --red-dim: rgba(248, 113, 113, 0.12);
+    --yellow: #facc15;
+    --yellow-dim: rgba(250, 204, 21, 0.12);
     --radius: 10px;
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
@@ -35,12 +38,12 @@ body {
 .container {
     max-width: 480px;
     margin: 0 auto;
-    padding: 28px 24px;
+    padding: 24px 24px;
 }
 
 header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 header h1 {
@@ -56,18 +59,133 @@ header h1 {
     margin-top: 4px;
 }
 
+/* ========== Server Controls ========== */
+.server-controls {
+    margin-bottom: 12px;
+    --wails-draggable: no-drag;
+}
+
+.control-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    margin-bottom: 8px;
+}
+
+.port-group {
+    flex: 1;
+}
+
+.port-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.port-group input {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.port-group input:focus {
+    border-color: var(--accent);
+}
+
+.port-group input.invalid {
+    border-color: var(--red);
+}
+
+/* Server button */
+.server-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.server-btn:active {
+    transform: scale(0.97);
+}
+
+.server-btn.running {
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.server-btn.running:hover {
+    background: rgba(248, 113, 113, 0.2);
+}
+
+.server-btn.stopped {
+    background: var(--green-dim);
+    color: var(--green);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.server-btn.stopped:hover {
+    background: rgba(74, 222, 128, 0.2);
+}
+
+.server-btn-icon {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.server-btn.running .server-btn-icon {
+    background: var(--red);
+}
+
+.server-btn.stopped .server-btn-icon {
+    background: var(--green);
+    border-radius: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 0 5px 9px;
+    border-color: transparent transparent transparent var(--green);
+}
+
 /* Status bar */
 .status-bar {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 14px;
+    padding: 8px 14px;
     background: var(--green-dim);
     border: 1px solid rgba(74, 222, 128, 0.2);
     border-radius: var(--radius);
     font-size: 12px;
     color: var(--green);
-    margin-bottom: 16px;
+}
+
+.status-bar.stopped {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text-secondary);
 }
 
 .status-bar.error {
@@ -84,35 +202,101 @@ header h1 {
     flex-shrink: 0;
 }
 
+.status-bar.stopped .status-dot {
+    background: var(--text-secondary);
+}
+
 .status-bar.error .status-dot {
     background: var(--red);
 }
 
-/* Card grid */
+/* ========== Card Grid ========== */
 .card-grid {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 12px 14px;
+    padding: 10px 14px;
+    transition: opacity 0.2s;
     --wails-draggable: no-drag;
 }
 
-.card label {
-    display: block;
+.card.disabled {
+    opacity: 0.4;
+}
+
+.card.disabled .value {
+    text-decoration: line-through;
+    color: var(--text-disabled);
+}
+
+/* Card header with checkbox */
+.card-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.split-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 0 14px;
+    padding-top: 10px;
+}
+
+/* ========== Custom Checkbox ========== */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+    display: none;
+}
+
+.checkmark {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+    content: "";
+    width: 4px;
+    height: 8px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translateY(-1px);
+}
+
+.field-name {
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-secondary);
-    margin-bottom: 4px;
 }
 
+/* Card values */
 .card .value {
     display: block;
     font-size: 14px;
@@ -136,20 +320,24 @@ header h1 {
     padding: 0;
 }
 
+.card.two-col .card-header {
+    margin-bottom: 0;
+}
+
 .split {
     display: grid;
     grid-template-columns: 1fr 1fr;
 }
 
 .split > div {
-    padding: 12px 14px;
+    padding: 6px 14px 10px;
 }
 
 .split > div:first-child {
     border-right: 1px solid var(--border);
 }
 
-/* Error message */
+/* ========== Error ========== */
 .error {
     padding: 12px 14px;
     background: var(--red-dim);
@@ -164,11 +352,11 @@ header h1 {
     display: none;
 }
 
-/* Action buttons */
+/* ========== Action Buttons ========== */
 .actions {
     display: flex;
     gap: 8px;
-    margin-top: 16px;
+    margin-top: 12px;
 }
 
 button {
@@ -219,7 +407,7 @@ button.copied {
     border-color: rgba(74, 222, 128, 0.2);
 }
 
-/* Loading skeleton */
+/* ========== Loading Skeleton ========== */
 .value.loading {
     background: linear-gradient(90deg, var(--surface) 25%, var(--surface-hover) 50%, var(--surface) 75%);
     background-size: 200% 100%;
