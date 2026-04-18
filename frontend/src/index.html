@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GetDevice</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GetDevice</h1>
+            <p class="subtitle">Device Information</p>
+        </header>
+
+        <div id="status-bar" class="status-bar">
+            <span class="status-dot"></span>
+            <span id="status-text">API running on port <span id="port">8080</span></span>
+        </div>
+
+        <div id="device-info" class="card-grid">
+            <div class="card">
+                <label>Device ID</label>
+                <span id="device_id" class="value mono">Loading...</span>
+            </div>
+            <div class="card">
+                <label>Device Name</label>
+                <span id="device_name" class="value">Loading...</span>
+            </div>
+            <div class="card">
+                <label>Client Key</label>
+                <span id="client_key" class="value mono small">Loading...</span>
+            </div>
+            <div class="card">
+                <label>Hostname</label>
+                <span id="hostname" class="value">Loading...</span>
+            </div>
+            <div class="card two-col">
+                <div class="split">
+                    <div>
+                        <label>OS</label>
+                        <span id="os" class="value">Loading...</span>
+                    </div>
+                    <div>
+                        <label>Architecture</label>
+                        <span id="arch" class="value">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <label>MAC Address</label>
+                <span id="mac_address" class="value mono">Loading...</span>
+            </div>
+            <div class="card">
+                <label>IP Address</label>
+                <span id="ip_address" class="value mono">Loading...</span>
+            </div>
+            <div class="card">
+                <label>Timestamp</label>
+                <span id="timestamp" class="value">Loading...</span>
+            </div>
+        </div>
+
+        <div id="error-msg" class="error hidden"></div>
+
+        <div class="actions">
+            <button id="refresh-btn" onclick="loadDeviceInfo()">Refresh</button>
+            <button id="copy-btn" class="secondary" onclick="copyAsJSON()">Copy JSON</button>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>

@@ -32,3 +32,6 @@ Thumbs.db
 # Build output
 dist/
 build/
+
+# Wails generated bindings
+frontend/wailsjs/
