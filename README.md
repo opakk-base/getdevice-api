@@ -4,14 +4,16 @@ A native desktop application + REST API that returns comprehensive device inform
 
 ## Features
 
-- **Native Desktop App**: Opens a native window showing device info (macOS, Windows, Linux)
-- **Background HTTP API**: REST API runs on a single port alongside the desktop UI
+- **Native Desktop App**: Server control panel with tabbed UI (macOS, Windows, Linux)
+- **Background HTTP API**: REST API runs on a configurable port alongside the desktop UI
+- **Field Exposure Control**: Choose which fields are included in the API response via Settings
+- **Start/Stop Server**: Toggle the HTTP server on/off without closing the app
+- **Custom Port**: Change the server port on the fly — auto-restarts if running
+- **Close Behavior**: Choose to exit the app or minimize to tray when closing the window
 - **Persistent Device ID**: Auto-generates UUID v4 on first run, saves to `.env` for persistence
 - **Persistent Client Key**: Auto-generates SHA256 key on first run, remains same across restarts
-- **Network Information**: Retrieves MAC address and local IP address
-- **System Information**: Returns OS name, architecture, and hostname
+- **Persistent Settings**: Close behavior and other settings are saved to `.env`
 - **Single Binary**: Everything bundled into one executable — no separate frontend/backend ports
-- **Copy to Clipboard**: One-click JSON copy from the desktop UI
 
 ## Quick Start
 
@@ -56,11 +58,40 @@ Output: `build/bin/GetDevice` (or `GetDevice.app` on macOS)
 ./build/bin/GetDevice
 ```
 
+You can override the port via environment variable:
+
+```bash
+PORT=9090 ./build/bin/getdevice-api.app/Contents/MacOS/GetDevice
+```
+
 ### 5. Test the API
 
 ```bash
 curl http://localhost:8080/getdevice
+curl http://localhost:8080/health
 ```
+
+## App UI
+
+The app has three tabs:
+
+### Device Tab (Main)
+
+Server control panel:
+- **Port input** — set the HTTP server port (auto-restarts on change)
+- **Start/Stop button** — toggle the HTTP server on/off
+- **Status indicator** — shows whether the server is running and on which port
+
+### Settings Tab
+
+- **Exposed Fields** — checkboxes to control which fields are included in the `/getdevice` API response (device_id, device_name, client_key, hostname, os, arch, mac_address, ip_address, timestamp)
+- **Close Behavior** — choose what happens when you close the window:
+  - *Exit application* — quits the app and stops the server
+  - *Minimize to tray* — hides the window but keeps the HTTP server running in the background; click the dock icon to show the window again
+
+### About Tab
+
+App name, version, author, license, and a link to the GitHub repository.
 
 ## Architecture
 
@@ -70,25 +101,27 @@ curl http://localhost:8080/getdevice
 │                                             │
 │  1. Background HTTP Server (:8080)          │
 │     ├── GET /health      (API)              │
-│     ├── GET /getdevice   (API)              │
+│     ├── GET /getdevice   (API, filtered)    │
 │     └── CORS middleware                     │
 │                                             │
 │  2. Wails Native Window                     │
-│     ├── Device info dashboard               │
-│     ├── Go bindings (no HTTP round-trip)    │
-│     └── Copy JSON to clipboard              │
+│     ├── Device tab (server controls)        │
+│     ├── Settings tab (fields, behavior)     │
+│     ├── About tab (app info)                │
+│     └── Go bindings (IPC, no HTTP)          │
 └─────────────────────────────────────────────┘
 ```
 
 - The **desktop UI** calls Go functions directly via Wails bindings (IPC, not HTTP)
 - The **HTTP API** runs in a background goroutine on the configured port
-- External services can still call `/getdevice` and `/health` as before
+- The `/getdevice` endpoint only returns fields that are enabled in Settings
+- External services can call `/getdevice` and `/health` as before
 
 ## Configuration
 
 ### .env File
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root (or let the app auto-generate one on first run):
 
 ```env
 # Device Configuration
@@ -99,6 +132,10 @@ CLIENT_KEY=
 
 # Server Configuration
 PORT=8080
+
+# App Settings
+# Close behavior: "exit" (quit app) or "minimize" (hide window, server keeps running)
+CLOSE_BEHAVIOR=exit
 ```
 
 ### Auto-Generation (Recommended)
@@ -112,7 +149,7 @@ Leave `DEVICE_ID` and `CLIENT_KEY` empty — they will be:
 
 ### GET /getdevice
 
-Returns comprehensive device information.
+Returns device information. Only fields enabled in Settings are included in the response.
 
 ```bash
 curl http://localhost:8080/getdevice
@@ -134,6 +171,8 @@ curl http://localhost:8080/getdevice
   }
 }
 ```
+
+If some fields are unchecked in Settings, they will be omitted from the `data` object.
 
 ### GET /health
 
@@ -167,14 +206,14 @@ curl http://localhost:8080/health
 
 ```
 getdevice-api/
-├── main.go                 # Entry point (Wails app + HTTP server)
-├── app.go                  # Wails-bound App struct
+├── main.go                 # Entry point (Wails app config, OnBeforeClose)
+├── app.go                  # Wails bindings (server lifecycle, settings, field filtering)
 ├── wails.json              # Wails project configuration
 ├── frontend/
 │   └── src/
-│       ├── index.html      # Desktop UI
+│       ├── index.html      # UI layout (3 tabs: Device, Settings, About)
 │       ├── style.css       # Styling
-│       └── main.js         # Frontend logic (calls Go bindings)
+│       └── main.js         # Frontend logic (tab switching, server controls, settings)
 ├── handlers/
 │   └── device.go           # HTTP handlers
 ├── middleware/
@@ -214,19 +253,25 @@ PORT=9090 ./build/bin/getdevice-api.app/Contents/MacOS/GetDevice
 lsof -ti:8080 | xargs kill -9
 ```
 
+You can also change the port from the app UI on the Device tab.
+
 ### Wails Not Found
 
 ```bash
 # Install Wails CLI
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-# Verify
+# Verify all dependencies
 wails doctor
 ```
 
 ### .env File Not Found
 
-Warning is normal — app will create `.env` on first run with auto-generated IDs.
+Warning is normal — the app will create `.env` on first run with auto-generated IDs.
+
+### Window Closed but Server Still Running
+
+If you set Close Behavior to "Minimize to tray" in Settings, closing the window hides it instead of quitting. The HTTP server keeps running. Click the dock icon (macOS) to show the window again, or quit from the app menu.
 
 ## License
 
@@ -235,9 +280,9 @@ MIT License
 ## Contributing
 
 1. Fork the repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
 
 ## Support
