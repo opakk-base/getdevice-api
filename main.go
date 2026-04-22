@@ -11,14 +11,23 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
 	"getdevice-api/services"
+	"getdevice-api/utils"
 )
 
 //go:embed all:frontend/src
 var assets embed.FS
 
 func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
+	// Resolve config path in user's config directory
+	// (e.g. ~/Library/Application Support/GetDevice/.env on macOS)
+	envPath := utils.GetEnvPath()
+	log.Printf("Using config file: %s", envPath)
+
+	// Migrate .env from legacy locations (CWD or next to executable) if needed
+	utils.MigrateEnvIfNeeded(envPath)
+
+	// Load environment variables from the resolved path
+	if err := godotenv.Load(envPath); err != nil {
 		log.Println("Warning: .env file not found, using system environment variables")
 	}
 
@@ -35,7 +44,6 @@ func main() {
 	}
 
 	// Initialize services
-	envPath := ".env"
 	deviceService := services.NewDeviceService(envPath)
 
 	// Create Wails app (server starts automatically in OnStartup)
