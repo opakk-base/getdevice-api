@@ -65,7 +65,15 @@ jobs:
 
       - name: Add NSIS to PATH
         shell: pwsh
-        run: Add-Content $env:GITHUB_PATH "$env:ProgramFiles(x86)\NSIS"
+        run: Add-Content $env:GITHUB_PATH "${env:ProgramFiles(x86)}\NSIS"
+
+      # wails silently SKIPS the installer if makensis cannot be found;
+      # check up-front so a missing tool fails loudly here instead.
+      - name: Verify makensis
+        shell: pwsh
+        run: |
+          makensis -VERSION
+          Write-Host "makensis OK"
 
       # Wails runs makensis itself (-nsis) using our custom project.nsi,
       # which adds Start Menu shortcuts, an uninstaller with a
@@ -78,6 +86,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
+          if (!(Test-Path "build/bin/getdevice-api-amd64-installer.exe")) {
+            Write-Host "Expected installer missing. build/bin contents:"
+            Get-ChildItem build/bin | Format-Table Name, Length
+            throw "getdevice-api-amd64-installer.exe was not produced"
+          }
           $tag = $env:GITHUB_REF.Replace('refs/tags/', '')
           Copy-Item "build/bin/getdevice-api-amd64-installer.exe" `
             "dist/GetDevice-windows-${tag}-installer.exe"
@@ -123,10 +136,12 @@ jobs:
 
       - name: Build Linux packages (.deb, .rpm, tar.gz)
         run: |
+          # nfpm.yaml expands ${VERSION} from the environment (the Makefile
+          # does the same); `nfpm package` has no -n/-v CLI flags.
           PKG_VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p dist
-          nfpm package -f build/linux/nfpm.yaml -p deb -t dist/ -n GetDevice -v "$PKG_VERSION"
-          nfpm package -f build/linux/nfpm.yaml -p rpm -t dist/ -n GetDevice -v "$PKG_VERSION"
+          VERSION="$PKG_VERSION" nfpm package -f build/linux/nfpm.yaml -p deb -t dist/
+          VERSION="$PKG_VERSION" nfpm package -f build/linux/nfpm.yaml -p rpm -t dist/
           # Portable tarball for distros without deb/rpm
           # (single-target wails builds output build/bin/GetDevice)
           mkdir -p "dist/GetDevice-${GITHUB_REF_NAME}-linux-amd64"
