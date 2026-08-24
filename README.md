@@ -7,6 +7,7 @@ A native desktop application + REST API that returns comprehensive device inform
 - **Native Desktop App**: Server control panel with tabbed UI (macOS, Windows, Linux)
 - **Background HTTP API**: REST API runs on a configurable port alongside the desktop UI
 - **Field Exposure Control**: Choose which fields are included in the API response via Settings
+- **App Lock**: The app requires a password (default `12345678`) to unlock on launch, changeable in Settings
 - **Start/Stop Server**: Toggle the HTTP server on/off without closing the app
 - **Custom Port**: Change the server port on the fly — auto-restarts if running
 - **Close Behavior**: Choose to exit the app or minimize to tray when closing the window
@@ -14,6 +15,43 @@ A native desktop application + REST API that returns comprehensive device inform
 - **Persistent Client Key**: Auto-generates SHA256 key on first run, remains same across restarts
 - **Persistent Settings**: Close behavior and other settings are saved to `.env`
 - **Single Binary**: Everything bundled into one executable — no separate frontend/backend ports
+
+## Install
+
+Prebuilt installers are published on the [Releases](https://github.com/opakk-base/getdevice-api/releases) page:
+
+| Platform | Download | Install |
+|----------|----------|---------|
+| **macOS** (Apple Silicon + Intel) | `GetDevice-macOS-<tag>.dmg` | Open the DMG → drag **GetDevice** to *Applications* |
+| **Windows** 64-bit | `GetDevice-windows-<tag>-installer.exe` | Run the setup wizard (Start Menu shortcut + uninstaller included) |
+| **Windows** 64-bit portable | `GetDevice-windows-<tag>.exe` | Just run it — nothing is installed |
+| **Debian / Ubuntu / Mint** | `getdevice_<ver>_amd64.deb` | `sudo apt install ./getdevice_<ver>_amd64.deb` |
+| **Fedora / RHEL / openSUSE** | `getdevice-<ver>_amd64.rpm` | `sudo dnf install ./getdevice-<ver>_amd64.rpm` |
+| **Any Linux** (portable) | `GetDevice-linux-<tag>-amd64.tar.gz` | Extract and run `./GetDevice` |
+
+Notes:
+
+- **macOS**: builds are ad-hoc signed. On first launch, right-click the app → **Open** to bypass Gatekeeper, or run:
+  ```bash
+  xattr -cr /Applications/GetDevice.app
+  ```
+- **Linux**: `.deb`/`.rpm` packages register a menu entry (`GetDevice`) and pull in GTK3 + WebKit2GTK automatically. Your config stays in `~/.config/GetDevice/`.
+- **Windows**: the uninstaller asks whether to keep your settings (`%AppData%\GetDevice\.env`).
+- Every release ships a `checksums.txt` — verify with `sha256sum -c checksums.txt`.
+
+### Building installers from source
+
+| Command | Produces | Host |
+|---------|----------|------|
+| `make dmg` | `dist/GetDevice-macOS-<version>.dmg` | macOS |
+| `make sign-macos` | ad-hoc signed `.app` (no Apple ID needed) | macOS |
+| `make nsis` | NSIS setup `.exe` in `build/bin/` | Windows ([NSIS](https://nsis.sourceforge.io) required) |
+| `make deb` / `make rpm` / `make tarball` | Linux packages in `dist/` | any ([nfpm](https://nfpm.goreleaser.com) required; auto-builds the Linux binary via Docker when not on Linux) |
+| `make installer` | installer for whatever OS you're on | any |
+
+Pushing a tag (`git tag v1.x.y && git push --tags`) triggers GitHub Actions to build and publish all of the above automatically.
+
+Linux cross-compiling from macOS/Windows uses a local builder image (`build/linux/Dockerfile`, built automatically on first use) because Wails v2 cannot cross-link GTK/WebKit binaries natively.
 
 ## Quick Start
 
@@ -84,10 +122,11 @@ Server control panel:
 
 ### Settings Tab
 
+- **App Password** — change the password required to unlock the app on launch (default `12345678`)
 - **Exposed Fields** — checkboxes to control which fields are included in the `/getdevice` API response (device_id, device_name, client_key, hostname, os, arch, mac_address, ip_address, timestamp)
 - **Close Behavior** — choose what happens when you close the window:
   - *Exit application* — quits the app and stops the server
-  - *Minimize to tray* — hides the window but keeps the HTTP server running in the background; click the dock icon to show the window again
+  - *Minimize to tray* — minimizes the window but keeps the HTTP server running in the background; click the dock/taskbar icon to restore it
 
 ### About Tab
 
@@ -136,6 +175,9 @@ PORT=8080
 # App Settings
 # Close behavior: "exit" (quit app) or "minimize" (hide window, server keeps running)
 CLOSE_BEHAVIOR=exit
+
+# App lock password (default 12345678 if unset)
+PASSWORD=12345678
 ```
 
 ### Auto-Generation (Recommended)
@@ -208,7 +250,14 @@ curl http://localhost:8080/health
 getdevice-api/
 ├── main.go                 # Entry point (Wails app config, OnBeforeClose)
 ├── app.go                  # Wails bindings (server lifecycle, settings, field filtering)
-├── wails.json              # Wails project configuration
+├── wails.json              # Wails project configuration (app metadata)
+├── Makefile                # Build & installer targets (make help)
+├── build/
+│   ├── appicon.png         # Source icon for all platforms
+│   ├── darwin/             # Info.plist + entitlements.plist (macOS bundle)
+│   ├── windows/
+│   │   └── installer/      # Custom NSIS installer script (project.nsi)
+│   └── linux/              # nfpm.yaml, .desktop entry, Dockerfile, icon scripts
 ├── frontend/
 │   └── src/
 │       ├── index.html      # UI layout (3 tabs: Device, Settings, About)
@@ -224,8 +273,10 @@ getdevice-api/
 │   ├── device.go           # Device info service
 │   └── id_generator.go     # ID generation & persistence
 ├── utils/
+│   ├── config.go           # Config dir resolution & .env migration
 │   ├── env.go              # Environment utilities
 │   └── network.go          # Network utilities
+├── .github/workflows/release.yml  # Tag-triggered installer builds for all 3 OSes
 ├── .env.example            # Environment template
 ├── go.mod                  # Go module
 └── README.md               # This file
@@ -271,7 +322,7 @@ Warning is normal — the app will create `.env` on first run with auto-generate
 
 ### Window Closed but Server Still Running
 
-If you set Close Behavior to "Minimize to tray" in Settings, closing the window hides it instead of quitting. The HTTP server keeps running. Click the dock icon (macOS) to show the window again, or quit from the app menu.
+If you set Close Behavior to "Minimize to tray" in Settings, closing the window minimizes it instead of quitting. The HTTP server keeps running. Click the dock icon (macOS) or taskbar icon (Windows/Linux) to restore the window, or quit from the app menu.
 
 ## License
 
