@@ -173,6 +173,9 @@ jobs:
           prerelease: false
           files: dist/*
           fail_on_unmatched_files: true
+          # Appends GitHub's auto-generated changelog ("What's Changed" since
+          # the previous tag) below the curated body.
+          generate_release_notes: true
           body: |
             ## GetDevice ${{ github.ref_name }}
 
@@ -192,3 +195,6 @@ jobs:
             - **Linux**: packages pull in GTK3 + WebKit2GTK automatically.
             - Config lives in your user config dir (`~/Library/Application Support/GetDevice`, `%AppData%\GetDevice`, `~/.config/GetDevice`) and survives reinstalls; the Windows uninstaller asks before removing it.
             - Verify your download with `sha256sum -c checksums.txt`.
+
+            ### What's Changed
+            _Auto-generated changelog appended below._
