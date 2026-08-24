@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -57,24 +58,29 @@ type App struct {
 	running       bool
 	exposedFields map[string]bool
 	closeBehavior string // "exit" or "minimize"
+	password      string // API access password
 	envPath       string
 	mu            sync.Mutex
 }
 
 // NewApp creates a new App instance with all fields exposed by default
-func NewApp(service *services.DeviceService, port string, closeBehavior string, envPath string) *App {
+func NewApp(service *services.DeviceService, port string, closeBehavior string, password string, envPath string) *App {
 	exposed := make(map[string]bool)
 	for _, f := range allFields {
-		exposed[f] = true
+		exposed[f] = f != "client_key"
 	}
 	if closeBehavior != "minimize" {
 		closeBehavior = "exit"
+	}
+	if password == "" {
+		password = "12345678"
 	}
 	return &App{
 		service:       service,
 		port:          port,
 		exposedFields: exposed,
 		closeBehavior: closeBehavior,
+		password:      password,
 		envPath:       envPath,
 	}
 }
@@ -92,8 +98,12 @@ func (a *App) beforeClose(ctx context.Context) bool {
 	a.mu.Unlock()
 
 	if behavior == "minimize" {
-		wailsRuntime.WindowHide(a.ctx)
-		return true // prevent quit — hide window, server keeps running
+		// Minimize (miniaturize) instead of hiding. Hiding uses orderOut: on macOS,
+		// which removes the window with no dock/taskbar affordance to restore it,
+		// so clicking the dock icon cannot bring it back. Minimizing keeps a native
+		// restore point the user can click.
+		wailsRuntime.WindowMinimise(a.ctx)
+		return true // prevent quit — minimize window, server keeps running
 	}
 	return false // allow quit
 }
@@ -197,7 +207,7 @@ func (a *App) StartServer() error {
 	mux.HandleFunc("/health", deviceHandler.HealthCheck)
 
 	a.server = &http.Server{
-		Addr:    ":" + a.port,
+		Addr:    "127.0.0.1:" + a.port,
 		Handler: middleware.CORS(mux),
 	}
 
@@ -278,7 +288,37 @@ func (a *App) GetServerStatus() ServerStatus {
 	}
 }
 
-// ---------- Settings ----------
+// ---------- App Security ----------
+
+// VerifyPassword checks the provided password against the current app password
+// using constant-time comparison.
+func (a *App) VerifyPassword(password string) bool {
+	a.mu.Lock()
+	current := a.password
+	a.mu.Unlock()
+
+	return len(password) == len(current) &&
+		subtle.ConstantTimeCompare([]byte(password), []byte(current)) == 1
+}
+
+// ChangePassword verifies the current password and, if valid, sets a new one
+// and persists it to .env.
+func (a *App) ChangePassword(currentPassword, newPassword string) error {
+	newPassword = strings.TrimSpace(newPassword)
+	if len(newPassword) < 4 {
+		return fmt.Errorf("new password must be at least 4 characters")
+	}
+
+	if !a.VerifyPassword(currentPassword) {
+		return fmt.Errorf("current password is incorrect")
+	}
+
+	a.mu.Lock()
+	a.password = newPassword
+	a.mu.Unlock()
+
+	return a.saveEnvKey("PASSWORD", newPassword)
+}
 
 // GetCloseBehavior returns the current close behavior setting
 func (a *App) GetCloseBehavior() string {

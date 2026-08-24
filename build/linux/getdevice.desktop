@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=GetDevice
+GenericName=Device Info Server
+Comment=Local device-information API server with a native control panel
+Exec=/usr/bin/GetDevice
+Icon=getdevice
+Terminal=false
+Categories=Network;Utility;System;
+Keywords=device;info;api;server;
+StartupWMClass=GetDevice

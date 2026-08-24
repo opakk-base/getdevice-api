@@ -9,5 +9,12 @@
   "author": {
     "name": "opakk",
     "email": ""
+  },
+  "info": {
+    "companyName": "opakk",
+    "productName": "GetDevice",
+    "productVersion": "1.2.1",
+    "copyright": "Copyright © 2026 opakk",
+    "comments": "GetDevice — local device-info API server with a native control panel"
   }
 }

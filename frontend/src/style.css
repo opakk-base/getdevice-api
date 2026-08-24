@@ -22,6 +22,11 @@
     --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
 }
 
+html {
+    min-height: 100%;
+    background: var(--bg);
+}
+
 body {
     font-family: var(--font);
     background: var(--bg);
@@ -29,13 +34,16 @@ body {
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     user-select: none;
+    overflow-x: hidden;
     --wails-draggable: drag;
 }
 
 .container {
-    max-width: 480px;
+    width: 100%;
+    max-width: 560px;
+    min-height: 100vh;
     margin: 0 auto;
-    padding: 20px 24px;
+    padding: 20px 24px 28px;
 }
 
 header {
@@ -103,10 +111,12 @@ header h1 {
     gap: 8px;
     align-items: flex-end;
     margin-bottom: 8px;
+    min-width: 0;
 }
 
 .port-group {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .port-group label {
@@ -268,6 +278,189 @@ header h1 {
     font-size: 12px;
     color: var(--text-secondary);
     margin-bottom: 14px;
+}
+
+.settings-desc .mono {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+}
+
+/* ========== Lock Screen ========== */
+.lock-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    z-index: 100;
+    padding: 24px;
+}
+
+.lock-screen.hidden {
+    display: none;
+}
+
+.lock-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 300px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 24px;
+}
+
+.lock-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 13px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(108, 140, 255, 0.2);
+    color: var(--accent);
+    font-size: 22px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+}
+
+.lock-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.lock-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+}
+
+.lock-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    text-align: center;
+    outline: none;
+    margin-bottom: 10px;
+    transition: border-color 0.15s;
+}
+
+.lock-input:focus {
+    border-color: var(--accent);
+}
+
+.lock-unlock {
+    width: 100%;
+    padding: 10px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(108, 140, 255, 0.25);
+    border-radius: var(--radius);
+    color: var(--accent);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.lock-unlock:hover {
+    background: rgba(108, 140, 255, 0.2);
+}
+
+.lock-error {
+    margin-top: 10px;
+    min-height: 16px;
+    font-size: 12px;
+    color: var(--red);
+}
+
+/* ========== Password Setting ========== */
+.password-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    margin-bottom: 8px;
+}
+
+.password-row:last-of-type {
+    margin-bottom: 0;
+}
+
+.password-row input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 9px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.password-row input:focus {
+    border-color: var(--accent);
+}
+
+.password-toggle,
+.password-save {
+    flex-shrink: 0;
+    padding: 0 14px;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.password-toggle {
+    background: var(--surface-hover);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+.password-toggle:hover {
+    color: var(--text);
+}
+
+.password-save {
+    background: var(--accent-dim);
+    border: 1px solid rgba(108, 140, 255, 0.25);
+    color: var(--accent);
+}
+
+.password-save:hover {
+    background: rgba(108, 140, 255, 0.2);
+}
+
+.password-status {
+    margin-top: 8px;
+    font-size: 12px;
+    min-height: 16px;
+    color: var(--text-secondary);
+}
+
+.password-status.ok {
+    color: var(--green);
+}
+
+.password-status.error {
+    color: var(--red);
 }
 
 /* ========== Field Toggle List ========== */
@@ -458,7 +651,7 @@ header h1 {
 
 .about-meta {
     width: 100%;
-    max-width: 300px;
+    max-width: 360px;
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -472,8 +665,16 @@ header h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     padding: 10px 14px;
     border-bottom: 1px solid var(--border);
+}
+
+.about-value,
+.about-link {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: right;
 }
 
 .about-row:last-child {
@@ -502,4 +703,24 @@ header h1 {
 
 .about-link:hover {
     text-decoration: underline;
+}
+
+@media (max-width: 420px) {
+    .container {
+        padding: 16px 14px 22px;
+    }
+
+    .control-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .server-btn {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .about-content {
+        padding: 20px 4px;
+    }
 }

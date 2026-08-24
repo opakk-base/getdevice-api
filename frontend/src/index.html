@@ -7,6 +7,18 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- ==================== Lock Screen ==================== -->
+    <div id="lock-screen" class="lock-screen">
+        <div class="lock-card">
+            <div class="lock-icon">D</div>
+            <div class="lock-title">GetDevice</div>
+            <div class="lock-subtitle">Enter password to unlock</div>
+            <input type="password" id="lock-password" class="lock-input" autocomplete="off" placeholder="Password" autofocus>
+            <button id="lock-unlock" class="lock-unlock" type="button" onclick="unlockApp()">Unlock</button>
+            <div id="lock-error" class="lock-error"></div>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <h1>GetDevice</h1>
@@ -41,6 +53,20 @@
 
         <!-- ==================== Settings Tab ==================== -->
         <div id="tab-settings" class="tab-content">
+            <div class="settings-section">
+                <div class="settings-title">App Password</div>
+                <p class="settings-desc">Set the password required to unlock this app on launch.</p>
+                <div class="password-row">
+                    <input type="password" id="current-password" class="password-input" autocomplete="off" spellcheck="false" placeholder="Current password">
+                </div>
+                <div class="password-row">
+                    <input type="password" id="new-password" class="password-input" autocomplete="off" spellcheck="false" placeholder="New password">
+                    <button id="password-toggle" class="password-toggle" type="button" onclick="togglePasswordVisibility()">Show</button>
+                    <button id="password-save" class="password-save" type="button" onclick="changePassword()">Save</button>
+                </div>
+                <div id="password-status" class="password-status"></div>
+            </div>
+
             <div class="settings-section">
                 <div class="settings-title">Exposed Fields</div>
                 <p class="settings-desc">Select which fields are included in the API response.</p>
@@ -110,7 +136,7 @@
                         <span class="radio-mark"></span>
                         <div class="radio-content">
                             <span class="radio-text">Minimize to tray</span>
-                            <span class="radio-hint">Window hides but the HTTP server keeps running in the background. Click the dock icon to show again.</span>
+                            <span class="radio-hint">Window minimizes but the HTTP server keeps running in the background. Click the dock/taskbar icon to restore it.</span>
                         </div>
                     </label>
                 </div>

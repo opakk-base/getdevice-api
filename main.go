@@ -43,16 +43,22 @@ func main() {
 		closeBehavior = "exit"
 	}
 
+	// Get API password from environment or use default
+	password := os.Getenv("PASSWORD")
+	if password == "" {
+		password = "12345678"
+	}
+
 	// Initialize services
 	deviceService := services.NewDeviceService(envPath)
 
 	// Create Wails app (server starts automatically in OnStartup)
-	app := NewApp(deviceService, port, closeBehavior, envPath)
+	app := NewApp(deviceService, port, closeBehavior, password, envPath)
 
 	err := wails.Run(&options.App{
 		Title:            "GetDevice",
-		Width:            420,
-		Height:           220,
+		Width:            480,
+		Height:           620,
 		BackgroundColour: &options.RGBA{R: 15, G: 17, B: 23, A: 255},
 		AssetServer: &assetserver.Options{
 			Assets: assets,

@@ -17,8 +17,9 @@ let portDebounceTimer = null;
 // ========== Initialization ==========
 
 document.addEventListener("DOMContentLoaded", async () => {
-    await initState();
     setupPortInput();
+    setupLockScreen();
+    document.getElementById("lock-password").focus();
 });
 
 async function initState() {
@@ -162,6 +163,11 @@ async function applyPort(port) {
 
 async function loadSettings() {
     try {
+        // Clear password fields
+        document.getElementById("current-password").value = "";
+        document.getElementById("new-password").value = "";
+        resetPasswordStatus();
+
         // Load close behavior
         const behavior = await window.go.main.App.GetCloseBehavior();
         const radios = document.querySelectorAll('input[name="close-behavior"]');
@@ -205,6 +211,93 @@ async function setCloseBehavior(value) {
     } catch (err) {
         console.error("Failed to set close behavior:", err);
     }
+}
+
+async function changePassword() {
+    const currentInput = document.getElementById("current-password");
+    const newInput = document.getElementById("new-password");
+    const status = document.getElementById("password-status");
+    const currentPassword = currentInput.value;
+    const newPassword = newInput.value.trim();
+
+    if (!currentPassword) {
+        status.textContent = "Enter your current password.";
+        status.className = "password-status error";
+        return;
+    }
+
+    if (newPassword.length < 4) {
+        status.textContent = "New password must be at least 4 characters.";
+        status.className = "password-status error";
+        return;
+    }
+
+    try {
+        await window.go.main.App.ChangePassword(currentPassword, newPassword);
+        currentInput.value = "";
+        newInput.value = "";
+        status.textContent = "Password changed.";
+        status.className = "password-status ok";
+    } catch (err) {
+        status.textContent = "Failed to change password: " + err;
+        status.className = "password-status error";
+    }
+}
+
+function resetPasswordStatus() {
+    const status = document.getElementById("password-status");
+    status.textContent = "";
+    status.className = "password-status";
+}
+
+function togglePasswordVisibility() {
+    const currentInput = document.getElementById("current-password");
+    const newInput = document.getElementById("new-password");
+    const btn = document.getElementById("password-toggle");
+    if (newInput.type === "password") {
+        currentInput.type = "text";
+        newInput.type = "text";
+        btn.textContent = "Hide";
+    } else {
+        currentInput.type = "password";
+        newInput.type = "password";
+        btn.textContent = "Show";
+    }
+}
+
+// ========== App Lock ==========
+
+async function unlockApp() {
+    const input = document.getElementById("lock-password");
+    const error = document.getElementById("lock-error");
+
+    try {
+        const ok = await window.go.main.App.VerifyPassword(input.value);
+        if (ok) {
+            input.value = "";
+            document.getElementById("lock-screen").classList.add("hidden");
+            await initState();
+        } else {
+            error.textContent = "Incorrect password.";
+            input.value = "";
+            input.focus();
+        }
+    } catch (err) {
+        error.textContent = "Failed to verify password: " + err;
+    }
+}
+
+function setupLockScreen() {
+    const input = document.getElementById("lock-password");
+    const error = document.getElementById("lock-error");
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            unlockApp();
+        }
+    });
+    input.addEventListener("input", () => {
+        error.textContent = "";
+    });
 }
 
 // ========== About ==========
