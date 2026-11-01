@@ -392,7 +392,7 @@ func (a *App) saveEnvKey(key, value string) error {
 func (a *App) GetAppInfo() AppInfo {
 	return AppInfo{
 		Name:        "Pegasus",
-		Version:     "1.3.2",
+		Version:     "1.4.0",
 		Author:      "opakk",
 		Description: "A native desktop application that exposes device information via a REST API on a single port.",
 		License:     "MIT",
