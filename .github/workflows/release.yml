@@ -60,27 +60,28 @@ jobs:
           if-no-files-found: error
 
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26.x'
-      - name: Install Wails v3 CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
-      - name: Add Wails CLI to PATH
-        shell: pwsh
-        run: Add-Content $env:GITHUB_PATH "$(go env GOPATH)\bin"
       - name: Install NSIS
         run: choco install nsis -y --no-progress
       - name: Add NSIS to PATH
         shell: pwsh
         run: Add-Content $env:GITHUB_PATH "${env:ProgramFiles(x86)}\NSIS"
-      - name: Build Pegasus and installer
+      - name: Build Pegasus GUI executable
         shell: pwsh
         run: |
-          $env:PATH = "$(go env GOPATH)\bin;$env:PATH"
-          wails3 task windows:build ARCH=amd64
+          $env:GOOS = "windows"
+          $env:GOARCH = "amd64"
+          $env:CGO_ENABLED = "0"
+          New-Item -ItemType Directory -Force -Path bin | Out-Null
+          go build -tags production -trimpath -ldflags="-w -s -H windowsgui" -o bin\Pegasus.exe .
+      - name: Package with NSIS
+        shell: pwsh
+        run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           $tag = $env:GITHUB_REF_NAME
           makensis "/DPEGASUS_EXE=bin\Pegasus.exe" "/DINSTALLER_OUT=dist\Pegasus-windows-$tag-installer.exe" build\windows\installer\project.nsi
@@ -92,7 +93,7 @@ jobs:
           if-no-files-found: error
 
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -100,15 +101,15 @@ jobs:
           go-version: '1.26.x'
       - name: Install Wails v3 CLI and Linux dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev imagemagick
           go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libgtk-4-dev libwebkitgtk-6.0-dev imagemagick
       - name: Build Pegasus and Linux packages
         run: |
           set -euo pipefail
           export PATH="$(go env GOPATH)/bin:$PATH"
-          wails3 build GOOS=linux GOARCH=amd64
+          wails3 task linux:build ARCH=amd64
           go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
           ./build/linux/scripts/gen-icon.sh
           mkdir -p dist
