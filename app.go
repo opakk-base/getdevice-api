@@ -359,6 +359,13 @@ func (a *App) ChangePassword(currentPassword, newPassword string) error {
 	return a.saveEnvKey("PASSWORD", newPassword)
 }
 
+// GetConfigPath returns the absolute path to the .env configuration file
+func (a *App) GetConfigPath() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.envPath
+}
+
 // saveEnvKey reads the .env file, sets a key, and writes it back
 func (a *App) saveEnvKey(key, value string) error {
 	env, err := godotenv.Read(a.envPath)

@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-getdevice-api
+/getdevice-api
 /bin/*
 !/bin/.gitkeep
 
@@ -46,3 +46,7 @@ build/windows/installer/tmp/
 # Wails generated bindings
 frontend/wailsjs/
 build/.gopath/
+
+# Documentation and planning artifacts
+docs/
+

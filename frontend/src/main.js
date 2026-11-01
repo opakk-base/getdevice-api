@@ -22,6 +22,7 @@ let portDebounceTimer = null;
 document.addEventListener("DOMContentLoaded", async () => {
     setupPortInput();
     setupLockScreen();
+    setupPasswordSettings();
     document.getElementById("lock-password").focus();
 });
 
@@ -182,7 +183,7 @@ async function loadSettings() {
         // Clear password fields
         document.getElementById("current-password").value = "";
         document.getElementById("new-password").value = "";
-        resetPasswordStatus();
+        clearPasswordValidation();
 
         // Load exposed fields
         const fields = await App.GetExposedFields();
@@ -246,22 +247,74 @@ async function toggleField(field, checked) {
     }
 }
 
+function setPasswordStatus(message, isOk) {
+    const status = document.getElementById("password-status");
+    status.className = "password-status " + (isOk ? "ok" : "error");
+    status.innerHTML = (isOk ? "<span>✓</span> " : "<span>✕</span> ") + message;
+}
+
+function resetPasswordStatus() {
+    const status = document.getElementById("password-status");
+    status.textContent = "";
+    status.className = "password-status";
+}
+
+function clearPasswordValidation() {
+    document.getElementById("current-password").classList.remove("invalid");
+    document.getElementById("new-password").classList.remove("invalid");
+    resetPasswordStatus();
+}
+
+function setupPasswordSettings() {
+    const currentInput = document.getElementById("current-password");
+    const newInput = document.getElementById("new-password");
+
+    currentInput.addEventListener("input", () => {
+        currentInput.classList.remove("invalid");
+        resetPasswordStatus();
+    });
+    newInput.addEventListener("input", () => {
+        newInput.classList.remove("invalid");
+        resetPasswordStatus();
+    });
+    currentInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            newInput.focus();
+        }
+    });
+    newInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            changePassword();
+        }
+    });
+}
+
 async function changePassword() {
     const currentInput = document.getElementById("current-password");
     const newInput = document.getElementById("new-password");
-    const status = document.getElementById("password-status");
     const currentPassword = currentInput.value;
     const newPassword = newInput.value.trim();
 
+    clearPasswordValidation();
+
     if (!currentPassword) {
-        status.textContent = "Masukkan kata sandi saat ini.";
-        status.className = "password-status error";
+        currentInput.classList.add("invalid");
+        currentInput.focus();
+        setPasswordStatus("Masukkan kata sandi saat ini.", false);
         return;
     }
 
     if (newPassword.length < 4) {
-        status.textContent = "Kata sandi baru minimal 4 karakter.";
-        status.className = "password-status error";
+        newInput.classList.add("invalid");
+        newInput.focus();
+        setPasswordStatus("Kata sandi baru minimal 4 karakter.", false);
+        return;
+    }
+
+    if (currentPassword === newPassword) {
+        newInput.classList.add("invalid");
+        newInput.focus();
+        setPasswordStatus("Kata sandi baru tidak boleh sama dengan kata sandi saat ini.", false);
         return;
     }
 
@@ -269,18 +322,22 @@ async function changePassword() {
         await App.ChangePassword(currentPassword, newPassword);
         currentInput.value = "";
         newInput.value = "";
-        status.textContent = "Kata sandi berhasil diubah.";
-        status.className = "password-status ok";
+        clearPasswordValidation();
+        setPasswordStatus("Kata sandi berhasil diubah.", true);
     } catch (err) {
-        status.textContent = "Gagal mengubah kata sandi: " + err;
-        status.className = "password-status error";
+        const errStr = String(err);
+        if (errStr.includes("current password is incorrect")) {
+            currentInput.classList.add("invalid");
+            currentInput.focus();
+            setPasswordStatus("Kata sandi saat ini salah.", false);
+        } else if (errStr.includes("at least 4 characters")) {
+            newInput.classList.add("invalid");
+            newInput.focus();
+            setPasswordStatus("Kata sandi baru minimal 4 karakter.", false);
+        } else {
+            setPasswordStatus("Gagal mengubah kata sandi: " + err, false);
+        }
     }
-}
-
-function resetPasswordStatus() {
-    const status = document.getElementById("password-status");
-    status.textContent = "";
-    status.className = "password-status";
 }
 
 function togglePasswordVisibility() {
@@ -300,36 +357,73 @@ function togglePasswordVisibility() {
 
 // ========== App Lock ==========
 
-async function unlockApp() {
+function showLockError(message) {
     const input = document.getElementById("lock-password");
     const error = document.getElementById("lock-error");
 
+    error.textContent = message;
+    input.classList.remove("shake");
+    // Trigger reflow to restart shake animation
+    void input.offsetWidth;
+    input.classList.add("invalid", "shake");
+    input.focus();
+}
+
+function clearLockError() {
+    const input = document.getElementById("lock-password");
+    const error = document.getElementById("lock-error");
+    input.classList.remove("invalid", "shake");
+    error.textContent = "";
+}
+
+async function unlockApp() {
+    const input = document.getElementById("lock-password");
+    const password = input.value;
+
+    if (!password) {
+        showLockError("Masukkan kata sandi terlebih dahulu.");
+        return;
+    }
+
     try {
-        const ok = await App.VerifyPassword(input.value);
+        const ok = await App.VerifyPassword(password);
         if (ok) {
+            clearLockError();
             input.value = "";
             document.getElementById("lock-screen").classList.add("hidden");
             await initState();
         } else {
-            error.textContent = "Incorrect password.";
+            showLockError("Kata sandi salah. Silakan coba lagi.");
             input.value = "";
-            input.focus();
         }
     } catch (err) {
-        error.textContent = "Failed to verify password: " + err;
+        showLockError("Gagal memverifikasi kata sandi: " + err);
+    }
+}
+
+async function toggleLockHelper() {
+    const box = document.getElementById("lock-helper-box");
+    const isHidden = box.classList.toggle("hidden");
+
+    if (!isHidden) {
+        try {
+            const configPath = await App.GetConfigPath();
+            document.getElementById("lock-config-path").textContent = configPath || ".env";
+        } catch (_) {
+            document.getElementById("lock-config-path").textContent = ".env";
+        }
     }
 }
 
 function setupLockScreen() {
     const input = document.getElementById("lock-password");
-    const error = document.getElementById("lock-error");
     input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             unlockApp();
         }
     });
     input.addEventListener("input", () => {
-        error.textContent = "";
+        clearLockError();
     });
 }
 
@@ -374,6 +468,7 @@ Object.assign(window, {
     togglePasswordVisibility,
     changePassword,
     unlockApp,
+    toggleLockHelper,
     openGitHub,
     openEndpoint,
 });

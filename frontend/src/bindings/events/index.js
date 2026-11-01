@@ -3,3 +3,4 @@
 
 // Make sure event data creation code is registered with the runtime.
 import "../github.com/wailsapp/wails/v3/internal/eventcreate.js";
+

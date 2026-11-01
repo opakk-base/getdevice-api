@@ -12,10 +12,16 @@
         <div class="lock-card">
             <div class="lock-icon">D</div>
             <div class="lock-title">Pegasus</div>
-            <div class="lock-subtitle">Enter password to unlock</div>
-            <input type="password" id="lock-password" class="lock-input" autocomplete="off" placeholder="Password" autofocus>
-            <button id="lock-unlock" class="lock-unlock" type="button" onclick="unlockApp()">Unlock</button>
-            <div id="lock-error" class="lock-error"></div>
+            <div class="lock-subtitle">Masukkan kata sandi untuk membuka</div>
+            <input type="password" id="lock-password" class="lock-input" autocomplete="off" placeholder="Kata Sandi" autofocus>
+            <button id="lock-unlock" class="lock-unlock" type="button" onclick="unlockApp()">Buka Kunci</button>
+            <div id="lock-error" class="lock-error" role="alert" aria-live="polite"></div>
+            <button id="lock-helper-btn" class="lock-helper-link" type="button" onclick="toggleLockHelper()">Lupa kata sandi?</button>
+            <div id="lock-helper-box" class="lock-helper hidden">
+                <div><strong>Kata sandi default:</strong> <code>12345678</code></div>
+                <div style="margin-top: 6px;">Untuk mereset manual, ubah atau hapus baris <code>PASSWORD=</code> pada file konfigurasi:</div>
+                <span id="lock-config-path" class="lock-helper-code">Memuat lokasi file...</span>
+            </div>
         </div>
     </div>
 
@@ -82,7 +88,7 @@
                     <button id="password-toggle" class="password-toggle" type="button" onclick="togglePasswordVisibility()">Tampilkan</button>
                     <button id="password-save" class="password-save" type="button" onclick="changePassword()">Simpan</button>
                 </div>
-                <div id="password-status" class="password-status"></div>
+                <div id="password-status" class="password-status" role="alert" aria-live="polite"></div>
             </div>
 
             <div class="settings-section">
