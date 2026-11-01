@@ -84,7 +84,9 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           $tag = $env:GITHUB_REF_NAME
-          makensis "/DPEGASUS_EXE=bin\Pegasus.exe" "/DINSTALLER_OUT=dist\Pegasus-windows-$tag-installer.exe" build\windows\installer\project.nsi
+          $executable = (Resolve-Path "bin\Pegasus.exe").Path
+          $installer = Join-Path (Get-Location) "dist\Pegasus-windows-$tag-installer.exe"
+          makensis "/DPEGASUS_EXE=$executable" "/DINSTALLER_OUT=$installer" build\windows\installer\project.nsi
           Copy-Item bin\Pegasus.exe "dist\Pegasus-windows-$tag.exe"
       - uses: actions/upload-artifact@v4
         with:
