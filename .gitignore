@@ -5,7 +5,8 @@
 *.so
 *.dylib
 getdevice-api
-bin/
+/bin/*
+!/bin/.gitkeep
 
 # Test binary
 *.test

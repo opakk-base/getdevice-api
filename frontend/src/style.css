@@ -253,6 +253,47 @@ header h1 {
     background: var(--red);
 }
 
+.device-info {
+    margin-top: 12px;
+}
+
+.feature-list {
+    display: grid;
+    gap: 6px;
+    padding-left: 18px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.feature-list code {
+    color: var(--accent);
+    font-family: var(--mono);
+}
+
+.endpoint-title {
+    margin: 16px 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.endpoint-list {
+    display: grid;
+    gap: 8px;
+}
+
+.endpoint-list a {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+}
+
+.endpoint-list a:hover {
+    text-decoration: underline;
+}
+
 .hidden {
     display: none;
 }
@@ -465,9 +506,9 @@ header h1 {
 
 /* ========== Field Toggle List ========== */
 .field-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px 8px;
 }
 
 .field-toggle {
@@ -493,6 +534,18 @@ header h1 {
     font-size: 13px;
     color: var(--text);
     font-weight: 500;
+}
+
+.field-toggle-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.field-toggle-hint {
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 1.35;
 }
 
 /* Custom Checkbox */

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GetDevice</title>
+    <title>Pegasus</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
     <div id="lock-screen" class="lock-screen">
         <div class="lock-card">
             <div class="lock-icon">D</div>
-            <div class="lock-title">GetDevice</div>
+            <div class="lock-title">Pegasus</div>
             <div class="lock-subtitle">Enter password to unlock</div>
             <input type="password" id="lock-password" class="lock-input" autocomplete="off" placeholder="Password" autofocus>
             <button id="lock-unlock" class="lock-unlock" type="button" onclick="unlockApp()">Unlock</button>
@@ -21,14 +21,14 @@
 
     <div class="container">
         <header>
-            <h1>GetDevice</h1>
+            <h1>Pegasus</h1>
         </header>
 
         <!-- Tab Bar -->
         <nav class="tab-bar">
-            <button class="tab active" onclick="switchTab('device')">Device</button>
-            <button class="tab" onclick="switchTab('settings')">Settings</button>
-            <button class="tab" onclick="switchTab('about')">About</button>
+            <button class="tab active" onclick="switchTab('device')">Perangkat</button>
+            <button class="tab" onclick="switchTab('settings')">Pengaturan</button>
+            <button class="tab" onclick="switchTab('about')">Tentang</button>
         </nav>
 
         <!-- ==================== Device Tab ==================== -->
@@ -36,12 +36,12 @@
             <div class="server-controls">
                 <div class="control-row">
                     <div class="port-group">
-                        <label for="port-input">Port</label>
+                    <label for="port-input">Port API</label>
                         <input type="text" id="port-input" value="8080" maxlength="5" placeholder="8080">
                     </div>
                     <button id="server-btn" class="server-btn running" onclick="toggleServer()">
                         <span class="server-btn-icon"></span>
-                        <span id="server-btn-text">Stop Server</span>
+                        <span id="server-btn-text">Hentikan Server</span>
                     </button>
                 </div>
                 <div id="status-bar" class="status-bar">
@@ -49,105 +49,123 @@
                     <span id="status-text">Running on port <span id="port-display">8080</span></span>
                 </div>
             </div>
+
+            <section class="device-info settings-section">
+                <h2 class="settings-title">Fitur Pegasus</h2>
+                <ul class="feature-list">
+                    <li>Panel desktop native untuk macOS, Windows, dan Linux.</li>
+                    <li>API perangkat berjalan lokal pada port yang dapat diatur.</li>
+                    <li>Pilih field yang disertakan dalam respons API.</li>
+                    <li>Aplikasi dilindungi kata sandi; default: <code>12345678</code>.</li>
+                    <li>Server dapat dijalankan atau dihentikan tanpa menutup aplikasi.</li>
+                    <li>ID perangkat dan client key tersimpan untuk penggunaan berikutnya.</li>
+                    <li>Frontend dan backend dikemas dalam satu aplikasi.</li>
+                </ul>
+                <h3 class="endpoint-title">Buka endpoint API</h3>
+                <div class="endpoint-list">
+                    <a id="getdevice-link" href="http://localhost:8080/getdevice" onclick="openEndpoint(event)">Data perangkat — http://localhost:8080/getdevice</a>
+                    <a id="health-link" href="http://localhost:8080/health" onclick="openEndpoint(event)">Status API — http://localhost:8080/health</a>
+                </div>
+            </section>
         </div>
 
         <!-- ==================== Settings Tab ==================== -->
         <div id="tab-settings" class="tab-content">
             <div class="settings-section">
-                <div class="settings-title">App Password</div>
-                <p class="settings-desc">Set the password required to unlock this app on launch.</p>
+                <div class="settings-title">Kata Sandi Aplikasi</div>
+                <p class="settings-desc">Atur kata sandi untuk membuka Pegasus.</p>
                 <div class="password-row">
-                    <input type="password" id="current-password" class="password-input" autocomplete="off" spellcheck="false" placeholder="Current password">
+                    <input type="password" id="current-password" class="password-input" autocomplete="off" spellcheck="false" placeholder="Kata sandi saat ini">
                 </div>
                 <div class="password-row">
-                    <input type="password" id="new-password" class="password-input" autocomplete="off" spellcheck="false" placeholder="New password">
-                    <button id="password-toggle" class="password-toggle" type="button" onclick="togglePasswordVisibility()">Show</button>
-                    <button id="password-save" class="password-save" type="button" onclick="changePassword()">Save</button>
+                    <input type="password" id="new-password" class="password-input" autocomplete="off" spellcheck="false" placeholder="Kata sandi baru">
+                    <button id="password-toggle" class="password-toggle" type="button" onclick="togglePasswordVisibility()">Tampilkan</button>
+                    <button id="password-save" class="password-save" type="button" onclick="changePassword()">Simpan</button>
                 </div>
                 <div id="password-status" class="password-status"></div>
             </div>
 
             <div class="settings-section">
-                <div class="settings-title">Exposed Fields</div>
-                <p class="settings-desc">Select which fields are included in the API response.</p>
+                <div class="settings-title">Field yang Ditampilkan</div>
+                <p class="settings-desc">Pilih informasi perangkat yang disertakan dalam respons API.</p>
                 <div class="field-list">
                     <label class="field-toggle">
                         <input type="checkbox" data-field="device_id" checked onchange="toggleField('device_id', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-toggle-text">Device ID</span>
+                        <span class="field-toggle-text">ID Perangkat</span>
                     </label>
                     <label class="field-toggle">
                         <input type="checkbox" data-field="device_name" checked onchange="toggleField('device_name', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-toggle-text">Device Name</span>
+                        <span class="field-toggle-text">Nama Perangkat</span>
                     </label>
                     <label class="field-toggle">
                         <input type="checkbox" data-field="client_key" checked onchange="toggleField('client_key', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-toggle-text">Client Key</span>
+                        <span class="field-toggle-text">Kunci Klien</span>
                     </label>
                     <label class="field-toggle">
                         <input type="checkbox" data-field="hostname" checked onchange="toggleField('hostname', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-toggle-text">Hostname</span>
+                        <span class="field-toggle-text">Nama Host</span>
                     </label>
                     <label class="field-toggle">
                         <input type="checkbox" data-field="os" checked onchange="toggleField('os', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-toggle-text">OS</span>
+                        <span class="field-toggle-text">Sistem Operasi</span>
                     </label>
                     <label class="field-toggle">
                         <input type="checkbox" data-field="arch" checked onchange="toggleField('arch', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-toggle-text">Architecture</span>
+                        <span class="field-toggle-text">Arsitektur</span>
                     </label>
                     <label class="field-toggle">
                         <input type="checkbox" data-field="mac_address" checked onchange="toggleField('mac_address', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-toggle-text">MAC Address</span>
+                        <span class="field-toggle-text">Alamat MAC</span>
                     </label>
                     <label class="field-toggle">
                         <input type="checkbox" data-field="ip_address" checked onchange="toggleField('ip_address', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-toggle-text">IP Address</span>
+                        <span class="field-toggle-text">Alamat IP</span>
                     </label>
                     <label class="field-toggle">
                         <input type="checkbox" data-field="timestamp" checked onchange="toggleField('timestamp', this.checked)">
                         <span class="checkmark"></span>
-                        <span class="field-toggle-text">Timestamp</span>
+                        <span class="field-toggle-text">Waktu Akses</span>
                     </label>
                 </div>
             </div>
 
             <div class="settings-section">
-                <div class="settings-title">Close Behavior</div>
-                <p class="settings-desc">Choose what happens when you close the window.</p>
-                <div class="radio-group">
-                    <label class="radio-label">
-                        <input type="radio" name="close-behavior" value="exit" checked onchange="setCloseBehavior('exit')">
-                        <span class="radio-mark"></span>
-                        <div class="radio-content">
-                            <span class="radio-text">Exit application</span>
-                            <span class="radio-hint">Closing the window quits the app and stops the server.</span>
-                        </div>
-                    </label>
-                    <label class="radio-label">
-                        <input type="radio" name="close-behavior" value="minimize" onchange="setCloseBehavior('minimize')">
-                        <span class="radio-mark"></span>
-                        <div class="radio-content">
-                            <span class="radio-text">Minimize to tray</span>
-                            <span class="radio-hint">Window minimizes but the HTTP server keeps running in the background. Click the dock/taskbar icon to restore it.</span>
-                        </div>
-                    </label>
-                </div>
+                <div class="settings-title">Latar Belakang</div>
+                <p class="settings-desc">Atur perilaku Pegasus di system tray dan saat Anda masuk ke komputer.</p>
+                <label class="field-toggle">
+                    <input type="checkbox" id="run-in-background" onchange="setRunInBackground(this.checked)">
+                    <span class="checkmark"></span>
+                    <span class="field-toggle-content">
+                        <span class="field-toggle-text">Tetap berjalan di system tray saat jendela ditutup</span>
+                        <span class="field-toggle-hint">Matikan opsi ini untuk keluar dari Pegasus saat tombol X ditekan.</span>
+                    </span>
+                </label>
+                <label class="field-toggle">
+                    <input type="checkbox" id="start-at-login" onchange="setStartAtLogin(this.checked)">
+                    <span class="checkmark"></span>
+                    <span class="field-toggle-content">
+                        <span class="field-toggle-text">Jalankan otomatis saat masuk ke komputer</span>
+                        <span class="field-toggle-hint">Pegasus akan dimulai otomatis setelah Anda login ke akun.</span>
+                    </span>
+                </label>
+                <div id="background-status" class="password-status" aria-live="polite"></div>
             </div>
+
         </div>
 
         <!-- ==================== About Tab ==================== -->
         <div id="tab-about" class="tab-content">
             <div class="about-content">
                 <div class="about-icon">D</div>
-                <div class="about-name" id="about-name">GetDevice</div>
+                <div class="about-name" id="about-name">Pegasus</div>
                 <div class="about-version" id="about-version">v1.1.0</div>
                 <p class="about-desc" id="about-desc">
                     A native desktop application that exposes device information via a REST API on a single port.
@@ -170,6 +188,6 @@
         </div>
     </div>
 
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
 </body>
 </html>

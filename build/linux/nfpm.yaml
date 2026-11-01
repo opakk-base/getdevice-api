@@ -1,17 +1,16 @@
-# nfpm configuration for GetDevice Linux packages (.deb / .rpm / archlinux)
+# nfpm configuration for Pegasus Linux packages (.deb / .rpm / archlinux)
 #
-# Usage (from repo root, after `wails build -platform linux/amd64`):
+# Usage (from repo root, after building the Linux binary):
 #   nfpm package -f build/linux/nfpm.yaml -p deb    -t dist/
 #   nfpm package -f build/linux/nfpm.yaml -p rpm    -t dist/
 #   nfpm package -f build/linux/nfpm.yaml -p archlinux -t dist/
 #
-# The binary must already exist at build/bin/GetDevice
-# (that is where the Wails CLI puts it for single-target linux builds).
-# The Makefile 'installer-linux' target wires this up for you.
+# The binary must already exist at bin/Pegasus.
+# The Linux release workflow packages this as a deb and rpm.
 #
 # Docs: https://nfpm.goreleaser.com/configuration/
 
-name: getdevice
+name: pegasus
 arch: amd64
 platform: linux
 version: ${VERSION}
@@ -21,7 +20,7 @@ priority: optional
 # Maintainer shown in package metadata (deb control file, rpm changelog, ...)
 maintainer: opakk <opakk@users.noreply.github.com>
 description: |-
-  GetDevice — local device-information API server with a native control panel.
+  Pegasus — local device-information API server with a native control panel.
   Runs a small HTTP API (/getdevice, /health) that reports device ID, hostname,
   OS details and network information, controlled from a native desktop window.
 
@@ -31,32 +30,27 @@ license: MIT
 
 # 'contains' keeps config on upgrade/uninstall; users can still purge it on deb
 contents:
-  - src: build/bin/GetDevice
-    dst: /usr/bin/GetDevice
-  - src: build/linux/getdevice.desktop
-    dst: /usr/share/applications/getdevice.desktop
-  - src: build/linux/icons/getdevice.png
-    dst: /usr/share/icons/hicolor/512x512/apps/getdevice.png
+  - src: bin/Pegasus
+    dst: /usr/bin/Pegasus
+  - src: build/linux/pegasus.desktop
+    dst: /usr/share/applications/pegasus.desktop
+  - src: build/linux/icons/pegasus.png
+    dst: /usr/share/icons/hicolor/512x512/apps/pegasus.png
   # Some minimal desktop environments only scan the legacy pixmaps directory
-  - src: build/linux/icons/getdevice.png
-    dst: /usr/share/pixmaps/getdevice.png
+  - src: build/linux/icons/pegasus.png
+    dst: /usr/share/pixmaps/pegasus.png
 
 # Runtime dependencies pulled in by apt/dnf/pacman on install.
-# Wails v2 links against GTK3 + WebKit2GTK; both 4.0 and 4.1 API variants work
-# because the binary embeds whichever it was compiled against. We ship the
-# webkit2_41 build so modern distros (Ubuntu 22.04+, Fedora 36+) are covered;
-# the 4.0 fallback list below helps older ones via virtual provides where available.
+# Wails v3 uses GTK4 and WebKitGTK 6.0 on Linux.
 depends:
-  - gtk3
-  - libwebkit2gtk-4.1-0
-  - libayatana-appindicator3-1
+  - libgtk-4-1
+  - libwebkitgtk-6.0-4
 
 overrides:
   rpm:
     depends:
-      - gtk3
-      - webkit2gtk4.1
-      - libayatana-appindicator3-gtk3
+      - gtk4
+      - webkitgtk6.0
 
 scripts:
   # Nothing to compile/configure; hooks kept explicit for clarity.

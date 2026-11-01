@@ -1,3 +1,6 @@
+import { Browser } from "/wails/runtime.js";
+import * as App from "./bindings/getdevice-api/app.js";
+
 // Track which fields are exposed
 let exposedFields = new Set([
     "device_id",
@@ -25,7 +28,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function initState() {
     try {
         // Get server status and set port input
-        const status = await window.go.main.App.GetServerStatus();
+        const status = await App.GetServerStatus();
         updateServerUI(status);
         document.getElementById("port-input").value = status.port;
     } catch (err) {
@@ -71,22 +74,22 @@ function switchTab(tabName) {
 
 async function toggleServer() {
     try {
-        const status = await window.go.main.App.GetServerStatus();
+        const status = await App.GetServerStatus();
 
         if (status.running) {
-            await window.go.main.App.StopServer();
+            await App.StopServer();
         } else {
-            await window.go.main.App.StartServer();
+            await App.StartServer();
         }
 
         await new Promise((r) => setTimeout(r, 200));
 
-        const newStatus = await window.go.main.App.GetServerStatus();
+        const newStatus = await App.GetServerStatus();
         updateServerUI(newStatus);
     } catch (err) {
         console.error("Server toggle error:", err);
         try {
-            const s = await window.go.main.App.GetServerStatus();
+            const s = await App.GetServerStatus();
             updateServerUI(s);
         } catch (_) {}
     }
@@ -100,14 +103,27 @@ function updateServerUI(status) {
 
     if (status.running) {
         btn.className = "server-btn running";
-        btnText.textContent = "Stop Server";
+        btnText.textContent = "Hentikan Server";
         statusBar.className = "status-bar";
-        statusText.innerHTML = 'Running on port <span id="port-display">' + status.port + "</span>";
+        statusText.innerHTML = 'Berjalan pada port <span id="port-display">' + status.port + "</span>";
     } else {
         btn.className = "server-btn stopped";
-        btnText.textContent = "Start Server";
+        btnText.textContent = "Jalankan Server";
         statusBar.className = "status-bar stopped";
-        statusText.innerHTML = "Server stopped";
+        statusText.innerHTML = "Server berhenti";
+    }
+    updateEndpointLinks(status.port);
+}
+
+function updateEndpointLinks(port) {
+    for (const [id, path, label] of [
+        ["getdevice-link", "/getdevice", "Data perangkat"],
+        ["health-link", "/health", "Status API"],
+    ]) {
+        const link = document.getElementById(id);
+        const url = `http://localhost:${port}${path}`;
+        link.href = url;
+        link.textContent = `${label} — ${url}`;
     }
 }
 
@@ -145,10 +161,10 @@ function setupPortInput() {
 
 async function applyPort(port) {
     try {
-        await window.go.main.App.SetPort(port);
+        await App.SetPort(port);
         await new Promise((r) => setTimeout(r, 300));
 
-        const status = await window.go.main.App.GetServerStatus();
+        const status = await App.GetServerStatus();
         updateServerUI(status);
     } catch (err) {
         console.error("Failed to set port:", err);
@@ -168,15 +184,8 @@ async function loadSettings() {
         document.getElementById("new-password").value = "";
         resetPasswordStatus();
 
-        // Load close behavior
-        const behavior = await window.go.main.App.GetCloseBehavior();
-        const radios = document.querySelectorAll('input[name="close-behavior"]');
-        radios.forEach((radio) => {
-            radio.checked = radio.value === behavior;
-        });
-
         // Load exposed fields
-        const fields = await window.go.main.App.GetExposedFields();
+        const fields = await App.GetExposedFields();
         exposedFields = new Set(fields);
 
         // Sync checkboxes
@@ -186,8 +195,40 @@ async function loadSettings() {
                 cb.checked = exposedFields.has(field);
             }
         });
+
+        const background = await App.GetBackgroundSettings();
+        document.getElementById("run-in-background").checked = background.runInBackground;
+        document.getElementById("start-at-login").checked = background.startAtLogin;
     } catch (err) {
         console.error("Failed to load settings:", err);
+    }
+}
+
+async function setRunInBackground(enabled) {
+    const checkbox = document.getElementById("run-in-background");
+    const status = document.getElementById("background-status");
+    try {
+        await App.SetRunInBackground(enabled);
+        status.textContent = "Pengaturan tray disimpan.";
+        status.className = "password-status ok";
+    } catch (err) {
+        checkbox.checked = !enabled;
+        status.textContent = "Gagal menyimpan pengaturan: " + err;
+        status.className = "password-status error";
+    }
+}
+
+async function setStartAtLogin(enabled) {
+    const checkbox = document.getElementById("start-at-login");
+    const status = document.getElementById("background-status");
+    try {
+        await App.SetStartAtLogin(enabled);
+        status.textContent = enabled ? "Pegasus akan dimulai saat Anda login." : "Mulai otomatis dinonaktifkan.";
+        status.className = "password-status ok";
+    } catch (err) {
+        checkbox.checked = !enabled;
+        status.textContent = "Gagal mengubah mulai otomatis: " + err;
+        status.className = "password-status error";
     }
 }
 
@@ -199,17 +240,9 @@ async function toggleField(field, checked) {
     }
 
     try {
-        await window.go.main.App.SetExposedFields(Array.from(exposedFields));
+        await App.SetExposedFields(Array.from(exposedFields));
     } catch (err) {
         console.error("Failed to update exposed fields:", err);
-    }
-}
-
-async function setCloseBehavior(value) {
-    try {
-        await window.go.main.App.SetCloseBehavior(value);
-    } catch (err) {
-        console.error("Failed to set close behavior:", err);
     }
 }
 
@@ -221,25 +254,25 @@ async function changePassword() {
     const newPassword = newInput.value.trim();
 
     if (!currentPassword) {
-        status.textContent = "Enter your current password.";
+        status.textContent = "Masukkan kata sandi saat ini.";
         status.className = "password-status error";
         return;
     }
 
     if (newPassword.length < 4) {
-        status.textContent = "New password must be at least 4 characters.";
+        status.textContent = "Kata sandi baru minimal 4 karakter.";
         status.className = "password-status error";
         return;
     }
 
     try {
-        await window.go.main.App.ChangePassword(currentPassword, newPassword);
+        await App.ChangePassword(currentPassword, newPassword);
         currentInput.value = "";
         newInput.value = "";
-        status.textContent = "Password changed.";
+        status.textContent = "Kata sandi berhasil diubah.";
         status.className = "password-status ok";
     } catch (err) {
-        status.textContent = "Failed to change password: " + err;
+        status.textContent = "Gagal mengubah kata sandi: " + err;
         status.className = "password-status error";
     }
 }
@@ -257,11 +290,11 @@ function togglePasswordVisibility() {
     if (newInput.type === "password") {
         currentInput.type = "text";
         newInput.type = "text";
-        btn.textContent = "Hide";
+        btn.textContent = "Sembunyikan";
     } else {
         currentInput.type = "password";
         newInput.type = "password";
-        btn.textContent = "Show";
+        btn.textContent = "Tampilkan";
     }
 }
 
@@ -272,7 +305,7 @@ async function unlockApp() {
     const error = document.getElementById("lock-error");
 
     try {
-        const ok = await window.go.main.App.VerifyPassword(input.value);
+        const ok = await App.VerifyPassword(input.value);
         if (ok) {
             input.value = "";
             document.getElementById("lock-screen").classList.add("hidden");
@@ -304,7 +337,7 @@ function setupLockScreen() {
 
 async function loadAboutInfo() {
     try {
-        const info = await window.go.main.App.GetAppInfo();
+        const info = await App.GetAppInfo();
         document.getElementById("about-name").textContent = info.name;
         document.getElementById("about-version").textContent = "v" + info.version;
         document.getElementById("about-desc").textContent = info.description;
@@ -323,6 +356,24 @@ function openGitHub(event) {
     event.preventDefault();
     const url = document.getElementById("about-github").href;
     if (url && url !== "#") {
-        window.runtime.BrowserOpenURL(url);
+        Browser.OpenURL(url);
     }
 }
+
+function openEndpoint(event) {
+    event.preventDefault();
+    Browser.OpenURL(event.currentTarget.href);
+}
+
+Object.assign(window, {
+    switchTab,
+    toggleServer,
+    toggleField,
+    setRunInBackground,
+    setStartAtLogin,
+    togglePasswordVisibility,
+    changePassword,
+    unlockApp,
+    openGitHub,
+    openEndpoint,
+});

@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 )
 
-const appName = "GetDevice"
+const appName = "Pegasus"
 
 // GetEnvPath returns the full path to the .env file in the user's
-// config directory (e.g. ~/Library/Application Support/GetDevice/.env on macOS,
-// %AppData%/GetDevice/.env on Windows). It creates the directory if needed.
+// config directory (e.g. ~/Library/Application Support/Pegasus/.env on macOS,
+// %AppData%/Pegasus/.env on Windows). It creates the directory if needed.
 //
 // If the config directory cannot be determined, it falls back to ".env"
 // in the current working directory (development mode).
@@ -47,11 +47,14 @@ func MigrateEnvIfNeeded(newEnvPath string) {
 
 	// Candidate legacy paths
 	candidates := []string{}
+	if configDir, err := os.UserConfigDir(); err == nil {
+		candidates = append(candidates, filepath.Join(configDir, "GetDevice", ".env"))
+	}
 
-	// 1. CWD/.env
+	// CWD/.env
 	candidates = append(candidates, ".env")
 
-	// 2. Next to the executable
+	// Next to the executable
 	if exePath, err := os.Executable(); err == nil {
 		if resolved, err := filepath.EvalSymlinks(exePath); err == nil {
 			candidates = append(candidates, filepath.Join(filepath.Dir(resolved), ".env"))

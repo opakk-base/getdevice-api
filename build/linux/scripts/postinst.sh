@@ -1,5 +1,5 @@
 #!/bin/sh
-# Post-install hook for GetDevice Linux packages.
+# Post-install hook for Pegasus Linux packages.
 set -e
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database -q /usr/share/applications 2>/dev/null || true

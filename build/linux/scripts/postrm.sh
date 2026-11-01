@@ -1,6 +1,6 @@
 #!/bin/sh
-# Post-remove hook for GetDevice Linux packages.
-# Leftover user config lives in ~/.config/GetDevice and is intentionally kept.
+# Post-remove hook for Pegasus Linux packages.
+# Leftover user config lives in ~/.config/Pegasus and is intentionally kept.
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database -q /usr/share/applications 2>/dev/null || true
 fi

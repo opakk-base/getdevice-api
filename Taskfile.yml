@@ -1,0 +1,30 @@
+version: '3'
+
+includes:
+  darwin: ./build/darwin/Taskfile.yml
+  windows: ./build/windows/Taskfile.yml
+  linux: ./build/linux/Taskfile.yml
+
+vars:
+  APP_NAME: Pegasus
+  BIN_DIR: bin
+
+tasks:
+  build:
+    summary: Build Pegasus for the selected platform
+    deps:
+      - task: generate:bindings
+    cmds:
+      - task: '{{.GOOS}}:build'
+        vars:
+          ARCH: '{{.GOARCH}}'
+
+  run:
+    summary: Run Pegasus
+    cmds:
+      - go run .
+
+  generate:bindings:
+    summary: Generate the Wails v3 frontend bindings
+    cmds:
+      - wails3 generate bindings -b -d frontend/src/bindings -clean=true

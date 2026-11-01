@@ -1,5 +1,5 @@
 #!/bin/sh
-# Generates build/linux/icons/getdevice.png (512x512) from the Wails app icon
+# Generates build/linux/icons/pegasus.png (512x512) from the Wails app icon
 # at build/appicon.png. Uses sips on macOS; ImageMagick elsewhere.
 set -e
 
@@ -7,7 +7,7 @@ set -e
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 SRC="$ROOT/build/appicon.png"
 OUT_DIR="$ROOT/build/linux/icons"
-OUT="$OUT_DIR/getdevice.png"
+OUT="$OUT_DIR/pegasus.png"
 
 mkdir -p "$OUT_DIR"
 

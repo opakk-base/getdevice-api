@@ -1,4 +1,4 @@
-# GetDevice
+# Pegasus
 
 A native desktop application + REST API that returns comprehensive device information including device ID, hostname, OS details, network information, and more. Built with Go and [Wails](https://wails.io/).
 
@@ -10,57 +10,25 @@ A native desktop application + REST API that returns comprehensive device inform
 - **App Lock**: The app requires a password (default `12345678`) to unlock on launch, changeable in Settings
 - **Start/Stop Server**: Toggle the HTTP server on/off without closing the app
 - **Custom Port**: Change the server port on the fly — auto-restarts if running
-- **Close Behavior**: Choose to exit the app or minimize to tray when closing the window
+- **System Tray**: Choose whether closing the window hides Pegasus in the tray or exits the app
+- **Login Startup**: Optionally launch Pegasus automatically when the user signs in
 - **Persistent Device ID**: Auto-generates UUID v4 on first run, saves to `.env` for persistence
 - **Persistent Client Key**: Auto-generates SHA256 key on first run, remains same across restarts
-- **Persistent Settings**: Close behavior and other settings are saved to `.env`
+- **Persistent Settings**: Password, tray preference, and device identity are stored in the user config directory
 - **Single Binary**: Everything bundled into one executable — no separate frontend/backend ports
 
 ## Install
 
-Prebuilt installers are published on the [Releases](https://github.com/opakk-base/getdevice-api/releases) page:
-
-| Platform | Download | Install |
-|----------|----------|---------|
-| **macOS** (Apple Silicon + Intel) | `GetDevice-macOS-<tag>.dmg` | Open the DMG → drag **GetDevice** to *Applications* |
-| **Windows** 64-bit | `GetDevice-windows-<tag>-installer.exe` | Run the setup wizard (Start Menu shortcut + uninstaller included) |
-| **Windows** 64-bit portable | `GetDevice-windows-<tag>.exe` | Just run it — nothing is installed |
-| **Debian / Ubuntu / Mint** | `getdevice_<ver>_amd64.deb` | `sudo apt install ./getdevice_<ver>_amd64.deb` |
-| **Fedora / RHEL / openSUSE** | `getdevice-<ver>_amd64.rpm` | `sudo dnf install ./getdevice-<ver>_amd64.rpm` |
-| **Any Linux** (portable) | `GetDevice-linux-<tag>-amd64.tar.gz` | Extract and run `./GetDevice` |
-
-Notes:
-
-- **macOS**: builds are ad-hoc signed. On first launch, right-click the app → **Open** to bypass Gatekeeper, or run:
-  ```bash
-  xattr -cr /Applications/GetDevice.app
-  ```
-- **Linux**: `.deb`/`.rpm` packages register a menu entry (`GetDevice`) and pull in GTK3 + WebKit2GTK automatically. Your config stays in `~/.config/GetDevice/`.
-- **Windows**: the uninstaller asks whether to keep your settings (`%AppData%\GetDevice\.env`).
-- Every release ships a `checksums.txt` — verify with `sha256sum -c checksums.txt`.
-
-### Building installers from source
-
-| Command | Produces | Host |
-|---------|----------|------|
-| `make dmg` | `dist/GetDevice-macOS-<version>.dmg` | macOS |
-| `make sign-macos` | ad-hoc signed `.app` (no Apple ID needed) | macOS |
-| `make nsis` | NSIS setup `.exe` in `build/bin/` | Windows ([NSIS](https://nsis.sourceforge.io) required) |
-| `make deb` / `make rpm` / `make tarball` | Linux packages in `dist/` | any ([nfpm](https://nfpm.goreleaser.com) required; auto-builds the Linux binary via Docker when not on Linux) |
-| `make installer` | installer for whatever OS you're on | any |
-
-Pushing a tag (`git tag v1.x.y && git push --tags`) triggers GitHub Actions to build and publish all of the above automatically.
-
-Linux cross-compiling from macOS/Windows uses a local builder image (`build/linux/Dockerfile`, built automatically on first use) because Wails v2 cannot cross-link GTK/WebKit binaries natively.
+Release packages are published on the [GitHub Releases](https://github.com/opakk-base/getdevice-api/releases) page when a new version tag is pushed.
 
 ## Quick Start
 
 ### Prerequisites
 
-- Go 1.22+
-- [Wails CLI](https://wails.io/docs/gettingstarted/installation): `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
+- Go 1.26+
+- [Wails v3 CLI](https://wails.io/): `go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0`
 - Xcode Command Line Tools (macOS): `xcode-select --install`
-- Node.js 15+ (for Wails build tooling)
+- GTK4 and WebKitGTK 6.0 development packages (Linux)
 
 ### 1. Clone & Install
 
@@ -70,36 +38,32 @@ cd getdevice-api
 go mod download
 ```
 
-### 2. Development Mode
+### 2. Run from source
 
 ```bash
-wails dev
+go run .
 ```
 
-This opens the native window with hot-reload. The HTTP API also runs in the background.
+This opens the native window. The HTTP API also runs in the background.
 
 ### 3. Build for Production
 
 ```bash
-wails build
+wails3 build
 ```
 
-Output: `build/bin/GetDevice` (or `GetDevice.app` on macOS)
+Output: `bin/Pegasus` (or `bin/Pegasus.exe` on Windows)
 
 ### 4. Run
 
 ```bash
-# macOS
-./build/bin/getdevice-api.app/Contents/MacOS/GetDevice
-
-# Linux/Windows
-./build/bin/GetDevice
+./bin/Pegasus
 ```
 
 You can override the port via environment variable:
 
 ```bash
-PORT=9090 ./build/bin/getdevice-api.app/Contents/MacOS/GetDevice
+PORT=9090 ./bin/Pegasus
 ```
 
 ### 5. Test the API
@@ -119,14 +83,15 @@ Server control panel:
 - **Port input** — set the HTTP server port (auto-restarts on change)
 - **Start/Stop button** — toggle the HTTP server on/off
 - **Status indicator** — shows whether the server is running and on which port
+- **API links** — open `http://localhost:8080/getdevice` or `http://localhost:8080/health`
 
 ### Settings Tab
 
 - **App Password** — change the password required to unlock the app on launch (default `12345678`)
 - **Exposed Fields** — checkboxes to control which fields are included in the `/getdevice` API response (device_id, device_name, client_key, hostname, os, arch, mac_address, ip_address, timestamp)
-- **Close Behavior** — choose what happens when you close the window:
-  - *Exit application* — quits the app and stops the server
-  - *Minimize to tray* — minimizes the window but keeps the HTTP server running in the background; click the dock/taskbar icon to restore it
+- **Background** — choose whether closing the window keeps Pegasus in the tray and whether Pegasus starts when you log in
+
+Use the tray menu to reopen the window or quit Pegasus. The background settings also control whether Pegasus starts when you log in. On Windows, the app is built as a GUI executable and does not open a command prompt. It runs in the logged-in user's session; it is not installed as a Windows Service.
 
 ### About Tab
 
@@ -143,7 +108,7 @@ App name, version, author, license, and a link to the GitHub repository.
 │     ├── GET /getdevice   (API, filtered)    │
 │     └── CORS middleware                     │
 │                                             │
-│  2. Wails Native Window                     │
+│  2. Pegasus System Tray + Wails Window      │
 │     ├── Device tab (server controls)        │
 │     ├── Settings tab (fields, behavior)     │
 │     ├── About tab (app info)                │
@@ -151,7 +116,7 @@ App name, version, author, license, and a link to the GitHub repository.
 └─────────────────────────────────────────────┘
 ```
 
-- The **desktop UI** calls Go functions directly via Wails bindings (IPC, not HTTP)
+- The **desktop UI** calls Go functions directly via Wails v3 bindings (IPC, not HTTP)
 - The **HTTP API** runs in a background goroutine on the configured port
 - The `/getdevice` endpoint only returns fields that are enabled in Settings
 - External services can call `/getdevice` and `/health` as before
@@ -160,7 +125,9 @@ App name, version, author, license, and a link to the GitHub repository.
 
 ### .env File
 
-Create a `.env` file in the project root (or let the app auto-generate one on first run):
+Pegasus stores `.env` under the user's config directory: `~/Library/Application Support/Pegasus` on macOS, `%AppData%\Pegasus` on Windows, and `~/.config/Pegasus` on Linux. Existing `GetDevice` config is copied on first launch.
+
+For a manual configuration, create `.env` in that directory:
 
 ```env
 # Device Configuration
@@ -172,12 +139,11 @@ CLIENT_KEY=
 # Server Configuration
 PORT=8080
 
-# App Settings
-# Close behavior: "exit" (quit app) or "minimize" (hide window, server keeps running)
-CLOSE_BEHAVIOR=exit
-
 # App lock password (default 12345678 if unset)
 PASSWORD=12345678
+
+# Keep Pegasus in the tray when the window is closed
+RUN_IN_BACKGROUND=true
 ```
 
 ### Auto-Generation (Recommended)
@@ -248,15 +214,16 @@ curl http://localhost:8080/health
 
 ```
 getdevice-api/
-├── main.go                 # Entry point (Wails app config, OnBeforeClose)
+├── main.go                 # Wails app, system tray, and close-to-hide behavior
 ├── app.go                  # Wails bindings (server lifecycle, settings, field filtering)
 ├── wails.json              # Wails project configuration (app metadata)
-├── Makefile                # Build & installer targets (make help)
+├── Makefile                # Wails v3 build commands
+├── Taskfile.yml            # Wails v3 task entry points
 ├── build/
 │   ├── appicon.png         # Source icon for all platforms
 │   ├── darwin/             # Info.plist + entitlements.plist (macOS bundle)
 │   ├── windows/
-│   │   └── installer/      # Custom NSIS installer script (project.nsi)
+│   │   └── installer/      # Pegasus NSIS installer script
 │   └── linux/              # nfpm.yaml, .desktop entry, Dockerfile, icon scripts
 ├── frontend/
 │   └── src/
@@ -276,7 +243,7 @@ getdevice-api/
 │   ├── config.go           # Config dir resolution & .env migration
 │   ├── env.go              # Environment utilities
 │   └── network.go          # Network utilities
-├── .github/workflows/release.yml  # Tag-triggered installer builds for all 3 OSes
+├── .github/workflows/release.yml  # Tag-triggered packages for all 3 OSes
 ├── .env.example            # Environment template
 ├── go.mod                  # Go module
 └── README.md               # This file
@@ -288,7 +255,7 @@ getdevice-api/
 require (
     github.com/google/uuid v1.6.0           // UUID generation
     github.com/joho/godotenv v1.5.1         // .env file loader
-    github.com/wailsapp/wails/v2 v2.12.0    // Desktop app framework
+    github.com/wailsapp/wails/v3 v3.0.0     // Desktop app framework and system tray
 )
 ```
 
@@ -298,22 +265,22 @@ require (
 
 ```bash
 # Use a different port
-PORT=9090 ./build/bin/getdevice-api.app/Contents/MacOS/GetDevice
+PORT=9090 ./bin/Pegasus
 
 # Or kill the process on the port
 lsof -ti:8080 | xargs kill -9
 ```
 
-You can also change the port from the app UI on the Device tab.
+You can also change the port from the app UI on the Device tab. Linux tray visibility depends on the desktop environment providing a StatusNotifier tray host.
 
 ### Wails Not Found
 
 ```bash
 # Install Wails CLI
-go install github.com/wailsapp/wails/v2/cmd/wails@latest
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
 
 # Verify all dependencies
-wails doctor
+wails3 doctor
 ```
 
 ### .env File Not Found
@@ -322,7 +289,7 @@ Warning is normal — the app will create `.env` on first run with auto-generate
 
 ### Window Closed but Server Still Running
 
-If you set Close Behavior to "Minimize to tray" in Settings, closing the window minimizes it instead of quitting. The HTTP server keeps running. Click the dock icon (macOS) or taskbar icon (Windows/Linux) to restore the window, or quit from the app menu.
+When background mode is enabled, closing the window hides Pegasus and keeps the HTTP server running. Open it again from the tray icon. Choose **Quit** in the tray menu to stop the server and exit Pegasus.
 
 ## License
 

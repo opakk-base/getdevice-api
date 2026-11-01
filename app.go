@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"getdevice-api/handlers"
 	"getdevice-api/middleware"
@@ -39,6 +39,11 @@ type ServerStatus struct {
 	Port    string `json:"port"`
 }
 
+type BackgroundSettings struct {
+	RunInBackground bool `json:"runInBackground"`
+	StartAtLogin    bool `json:"startAtLogin"`
+}
+
 // AppInfo holds metadata for the About page
 type AppInfo struct {
 	Name        string `json:"name"`
@@ -51,61 +56,95 @@ type AppInfo struct {
 
 // App struct provides Wails bindings to the frontend
 type App struct {
-	ctx           context.Context
-	service       *services.DeviceService
-	server        *http.Server
-	port          string
-	running       bool
-	exposedFields map[string]bool
-	closeBehavior string // "exit" or "minimize"
-	password      string // API access password
-	envPath       string
-	mu            sync.Mutex
+	service         *services.DeviceService
+	server          *http.Server
+	port            string
+	running         bool
+	exposedFields   map[string]bool
+	password        string // API access password
+	envPath         string
+	autostart       *application.AutostartManager
+	runInBackground bool
+	mu              sync.Mutex
 }
 
 // NewApp creates a new App instance with all fields exposed by default
-func NewApp(service *services.DeviceService, port string, closeBehavior string, password string, envPath string) *App {
+func NewApp(service *services.DeviceService, port string, password string, envPath string, autostart *application.AutostartManager, runInBackground bool) *App {
 	exposed := make(map[string]bool)
 	for _, f := range allFields {
 		exposed[f] = f != "client_key"
-	}
-	if closeBehavior != "minimize" {
-		closeBehavior = "exit"
 	}
 	if password == "" {
 		password = "12345678"
 	}
 	return &App{
-		service:       service,
-		port:          port,
-		exposedFields: exposed,
-		closeBehavior: closeBehavior,
-		password:      password,
-		envPath:       envPath,
+		service:         service,
+		port:            port,
+		exposedFields:   exposed,
+		password:        password,
+		envPath:         envPath,
+		autostart:       autostart,
+		runInBackground: runInBackground,
 	}
 }
 
-// startup is called when the app starts
-func (a *App) startup(ctx context.Context) {
-	a.ctx = ctx
-	a.StartServer()
-}
-
-// beforeClose is called when the user tries to close the window
-func (a *App) beforeClose(ctx context.Context) bool {
+func (a *App) GetBackgroundSettings() (BackgroundSettings, error) {
 	a.mu.Lock()
-	behavior := a.closeBehavior
+	runInBackground := a.runInBackground
 	a.mu.Unlock()
 
-	if behavior == "minimize" {
-		// Minimize (miniaturize) instead of hiding. Hiding uses orderOut: on macOS,
-		// which removes the window with no dock/taskbar affordance to restore it,
-		// so clicking the dock icon cannot bring it back. Minimizing keeps a native
-		// restore point the user can click.
-		wailsRuntime.WindowMinimise(a.ctx)
-		return true // prevent quit — minimize window, server keeps running
+	startAtLogin := false
+	if a.autostart != nil {
+		var err error
+		startAtLogin, err = a.autostart.IsEnabled()
+		if err != nil {
+			return BackgroundSettings{}, err
+		}
 	}
-	return false // allow quit
+	return BackgroundSettings{RunInBackground: runInBackground, StartAtLogin: startAtLogin}, nil
+}
+
+func (a *App) SetRunInBackground(enabled bool) error {
+	value := strconv.FormatBool(enabled)
+	if err := a.saveEnvKey("RUN_IN_BACKGROUND", value); err != nil {
+		return err
+	}
+	a.mu.Lock()
+	a.runInBackground = enabled
+	a.mu.Unlock()
+	return nil
+}
+
+func (a *App) SetStartAtLogin(enabled bool) error {
+	if a.autostart == nil {
+		return fmt.Errorf("automatic startup is unavailable")
+	}
+	if enabled {
+		return a.autostart.EnableWithOptions(application.AutostartOptions{
+			Identifier: "com.opakk.pegasus",
+			Arguments:  []string{"--background"},
+		})
+	}
+	return a.autostart.Disable()
+}
+
+func (a *App) runInBackgroundEnabled() bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.runInBackground
+}
+
+// ServiceStartup starts the API when Pegasus launches.
+func (a *App) ServiceStartup(context.Context, application.ServiceOptions) error {
+	return a.StartServer()
+}
+
+// ServiceShutdown stops the API when Pegasus quits from its tray menu.
+func (a *App) ServiceShutdown() error {
+	if a.GetServerStatus().Running {
+		return a.StopServer()
+	}
+	return nil
 }
 
 // ---------- Device Info ----------
@@ -320,27 +359,6 @@ func (a *App) ChangePassword(currentPassword, newPassword string) error {
 	return a.saveEnvKey("PASSWORD", newPassword)
 }
 
-// GetCloseBehavior returns the current close behavior setting
-func (a *App) GetCloseBehavior() string {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	return a.closeBehavior
-}
-
-// SetCloseBehavior sets the close behavior and persists to .env
-func (a *App) SetCloseBehavior(behavior string) error {
-	if behavior != "exit" && behavior != "minimize" {
-		return fmt.Errorf("invalid behavior: must be 'exit' or 'minimize'")
-	}
-
-	a.mu.Lock()
-	a.closeBehavior = behavior
-	a.mu.Unlock()
-
-	// Persist to .env
-	return a.saveEnvKey("CLOSE_BEHAVIOR", behavior)
-}
-
 // saveEnvKey reads the .env file, sets a key, and writes it back
 func (a *App) saveEnvKey(key, value string) error {
 	env, err := godotenv.Read(a.envPath)
@@ -366,8 +384,8 @@ func (a *App) saveEnvKey(key, value string) error {
 // GetAppInfo returns app metadata for the About page
 func (a *App) GetAppInfo() AppInfo {
 	return AppInfo{
-		Name:        "GetDevice",
-		Version:     "1.1.0",
+		Name:        "Pegasus",
+		Version:     "1.3.2",
 		Author:      "opakk",
 		Description: "A native desktop application that exposes device information via a REST API on a single port.",
 		License:     "MIT",

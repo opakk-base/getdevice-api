@@ -1,4 +1,4 @@
-# Docker build environment for cross-compiling GetDevice to Linux.
+# Docker build environment for cross-compiling Pegasus to Linux.
 #
 # Wails v2 cannot natively cross-compile to Linux from macOS/Windows because
 # the binary links GTK/WebKit at build time. This image provides those dev
@@ -10,22 +10,17 @@
 #
 # Usage is wired up in the Makefile (`make build-linux-docker`).
 
-FROM golang:1.25-trixie
+FROM golang:1.26-trixie
 
-# Build dependencies required by Wails v2 on Linux.
-# Node.js comes from the Debian repo; it is unused when frontend commands are
-# empty in wails.json, but including it keeps `wails doctor` happy.
+# Build dependencies required by Wails v3 on Linux.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        nodejs \
-        npm \
         pkg-config \
         gcc \
         libc6-dev \
-        libgtk-3-dev \
-        libwebkit2gtk-4.1-dev \
-        libayatana-appindicator3-dev \
+        libgtk-4-dev \
+        libwebkitgtk-6.0-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN go install github.com/wailsapp/wails/v2/cmd/wails@latest
+RUN go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
 
 WORKDIR /project

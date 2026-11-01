@@ -10,97 +10,82 @@ permissions:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
-
-      - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
-      - name: Build macOS universal app bundle
-        run: wails build -platform darwin/universal -s -skipbindings
-
-      - name: Ad-hoc codesign app bundle
+          go-version: '1.26.x'
+      - name: Install Wails v3 CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
+      - name: Add Wails CLI to PATH
+        run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Build app bundle and DMG
+        shell: bash
         run: |
-          codesign --force --deep --entitlements build/darwin/entitlements.plist \
-            --sign - build/bin/getdevice-api.app
-          codesign --verify --deep --strict build/bin/getdevice-api.app
-
-      - name: Package DMG
-        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          wails3 generate icons -input build/appicon.png -macfilename build/darwin/icons.icns
+          wails3 task darwin:build:universal
+          app="dist/Pegasus.app"
+          mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+          cp bin/Pegasus "$app/Contents/MacOS/Pegasus"
+          cp build/darwin/icons.icns "$app/Contents/Resources/iconfile.icns"
+          cat > "$app/Contents/Info.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>CFBundleName</key><string>Pegasus</string>
+            <key>CFBundleDisplayName</key><string>Pegasus</string>
+            <key>CFBundleExecutable</key><string>Pegasus</string>
+            <key>CFBundleIdentifier</key><string>com.opakk.pegasus</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleShortVersionString</key><string>$version</string>
+            <key>CFBundleVersion</key><string>$version</string>
+            <key>CFBundleIconFile</key><string>iconfile</string>
+            <key>LSMinimumSystemVersion</key><string>12.0</string>
+          </dict></plist>
+          EOF
+          chmod +x "$app/Contents/MacOS/Pegasus"
+          codesign --force --deep --sign - "$app"
           mkdir -p dist/dmg-staging
-          cp -R build/bin/getdevice-api.app dist/dmg-staging/
-          ln -sf /Applications dist/dmg-staging/Applications
-          hdiutil create -volname "GetDevice ${GITHUB_REF#refs/tags/}" \
-            -srcfolder dist/dmg-staging \
-            -ov -format UDZO \
-            "dist/GetDevice-macOS-${GITHUB_REF#refs/tags/}.dmg"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          cp -R "$app" dist/dmg-staging/
+          ln -s /Applications dist/dmg-staging/Applications
+          hdiutil create -volname "Pegasus $tag" -srcfolder dist/dmg-staging -ov -format UDZO "dist/Pegasus-macOS-$tag.dmg"
+      - uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: dist/*.dmg
+          path: dist/Pegasus-macOS-*.dmg
           if-no-files-found: error
 
   build-windows:
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
-
-      - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
+          go-version: '1.26.x'
+      - name: Install Wails v3 CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
+      - name: Add Wails CLI to PATH
+        shell: pwsh
+        run: Add-Content $env:GITHUB_PATH "$(go env GOPATH)\bin"
       - name: Install NSIS
         run: choco install nsis -y --no-progress
-
       - name: Add NSIS to PATH
         shell: pwsh
         run: Add-Content $env:GITHUB_PATH "${env:ProgramFiles(x86)}\NSIS"
-
-      # wails silently SKIPS the installer if makensis cannot be found;
-      # check up-front so a missing tool fails loudly here instead.
-      - name: Verify makensis
+      - name: Build Pegasus and installer
         shell: pwsh
         run: |
-          makensis -VERSION
-          Write-Host "makensis OK"
-
-      # Wails runs makensis itself (-nsis) using our custom project.nsi,
-      # which adds Start Menu shortcuts, an uninstaller with a
-      # "keep my settings?" prompt, WebView2 bootstrapping, and
-      # run-after-setup / desktop-shortcut options.
-      - name: Build Windows installer (NSIS)
-        run: wails build -platform windows/amd64 -s -skipbindings -nsis
-
-      - name: Stage installer artifact
-        shell: pwsh
-        run: |
+          $env:PATH = "$(go env GOPATH)\bin;$env:PATH"
+          wails3 task windows:build ARCH=amd64
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          if (!(Test-Path "build/bin/getdevice-api-amd64-installer.exe")) {
-            Write-Host "Expected installer missing. build/bin contents:"
-            Get-ChildItem build/bin | Format-Table Name, Length
-            throw "getdevice-api-amd64-installer.exe was not produced"
-          }
-          $tag = $env:GITHUB_REF.Replace('refs/tags/', '')
-          Copy-Item "build/bin/getdevice-api-amd64-installer.exe" `
-            "dist/GetDevice-windows-${tag}-installer.exe"
-          Copy-Item "build/bin/GetDevice.exe" "dist/GetDevice-windows-${tag}.exe"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          $tag = $env:GITHUB_REF_NAME
+          makensis "/DPEGASUS_EXE=bin\Pegasus.exe" "/DINSTALLER_OUT=dist\Pegasus-windows-$tag-installer.exe" build\windows\installer\project.nsi
+          Copy-Item bin\Pegasus.exe "dist\Pegasus-windows-$tag.exe"
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-build
           path: dist/*
@@ -109,53 +94,32 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
-
-      - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
-      # GTK3 + WebKit2GTK dev libraries are required to link the Linux binary.
-      # The runtime libs are pulled in automatically by deb/rpm dependencies.
-      - name: Install Linux build dependencies
+          go-version: '1.26.x'
+      - name: Install Wails v3 CLI and Linux dependencies
         run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev
-
-      - name: Build Linux amd64 binary
-        run: wails build -platform linux/amd64 -s -skipbindings -tags webkit2_41
-
-      - name: Install nfpm
-        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
-
-      - name: Generate Linux icon
-        run: ./build/linux/scripts/gen-icon.sh
-
-      - name: Build Linux packages (.deb, .rpm, tar.gz)
+          sudo apt-get install -y --no-install-recommends libgtk-4-dev libwebkitgtk-6.0-dev imagemagick
+      - name: Build Pegasus and Linux packages
         run: |
-          # nfpm.yaml expands ${VERSION} from the environment (the Makefile
-          # does the same); `nfpm package` has no -n/-v CLI flags.
-          PKG_VERSION="${GITHUB_REF_NAME#v}"
+          set -euo pipefail
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          wails3 build GOOS=linux GOARCH=amd64
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          ./build/linux/scripts/gen-icon.sh
           mkdir -p dist
-          VERSION="$PKG_VERSION" nfpm package -f build/linux/nfpm.yaml -p deb -t dist/
-          VERSION="$PKG_VERSION" nfpm package -f build/linux/nfpm.yaml -p rpm -t dist/
-          # Portable tarball for distros without deb/rpm
-          # (single-target wails builds output build/bin/GetDevice)
-          mkdir -p "dist/GetDevice-${GITHUB_REF_NAME}-linux-amd64"
-          cp build/bin/GetDevice "dist/GetDevice-${GITHUB_REF_NAME}-linux-amd64/GetDevice"
-          cp README.md .env.example "dist/GetDevice-${GITHUB_REF_NAME}-linux-amd64/"
-          tar -czf "dist/GetDevice-linux-${GITHUB_REF_NAME}-amd64.tar.gz" \
-            -C dist "GetDevice-${GITHUB_REF_NAME}-linux-amd64"
-          rm -rf "dist/GetDevice-${GITHUB_REF_NAME}-linux-amd64"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          package_version="${GITHUB_REF_NAME#v}"
+          VERSION="$package_version" nfpm package -f build/linux/nfpm.yaml -p deb -t dist/
+          VERSION="$package_version" nfpm package -f build/linux/nfpm.yaml -p rpm -t dist/
+          mkdir -p "dist/Pegasus-${GITHUB_REF_NAME}-linux-amd64"
+          cp bin/Pegasus README.md .env.example "dist/Pegasus-${GITHUB_REF_NAME}-linux-amd64/"
+          tar -czf "dist/Pegasus-linux-${GITHUB_REF_NAME}-amd64.tar.gz" -C dist "Pegasus-${GITHUB_REF_NAME}-linux-amd64"
+          rm -rf "dist/Pegasus-${GITHUB_REF_NAME}-linux-amd64"
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-build
           path: dist/*
@@ -167,52 +131,18 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
           path: dist
-
-      - name: Generate SHA256 checksums
-        id: checksums
-        run: |
-          cd dist
-          sha256sum * > checksums.txt
-          # Multiline output for the release body
-          echo "shas<<EOF" >> "$GITHUB_OUTPUT"
-          cat checksums.txt >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-      - name: Create GitHub Release
+      - name: Generate checksums
+        run: cd dist && sha256sum * > checksums.txt
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: GetDevice ${{ github.ref_name }}
+          name: Pegasus ${{ github.ref_name }}
           draft: false
           prerelease: false
           files: dist/*
           fail_on_unmatched_files: true
-          # Appends GitHub's auto-generated changelog ("What's Changed" since
-          # the previous tag) below the curated body.
           generate_release_notes: true
-          body: |
-            ## GetDevice ${{ github.ref_name }}
-
-            ### Downloads
-
-            | Platform | File | Install |
-            |----------|------|---------|
-            | **macOS** (Apple Silicon + Intel) | `GetDevice-macOS-*.dmg` | Open → drag **GetDevice** to *Applications* |
-            | **Windows** 64-bit | `GetDevice-windows-*-installer.exe` | Run the setup wizard |
-            | **Windows** 64-bit (portable) | `GetDevice-windows-*.exe` | Just run it — no install needed |
-            | **Debian / Ubuntu** | `getdevice_*_amd64.deb` | `sudo apt install ./getdevice_*_amd64.deb` |
-            | **Fedora / RHEL** | `getdevice-*_amd64.rpm` | `sudo dnf install ./getdevice-*_amd64.rpm` |
-            | **Any Linux** (portable) | `GetDevice-linux-*.tar.gz` | Extract & run `./GetDevice` |
-
-            ### Notes
-            - **macOS**: ad-hoc signed build — right-click the app → **Open** on first launch to bypass Gatekeeper.
-            - **Linux**: packages pull in GTK3 + WebKit2GTK automatically.
-            - Config lives in your user config dir (`~/Library/Application Support/GetDevice`, `%AppData%\GetDevice`, `~/.config/GetDevice`) and survives reinstalls; the Windows uninstaller asks before removing it.
-            - Verify your download with `sha256sum -c checksums.txt`.
-
-            ### What's Changed
-            _Auto-generated changelog appended below._
