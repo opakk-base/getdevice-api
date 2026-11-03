@@ -47,8 +47,18 @@ body {
 }
 
 header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     text-align: center;
     margin-bottom: 12px;
+}
+
+header .app-logo {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
 }
 
 header h1 {
@@ -356,17 +366,9 @@ header h1 {
 }
 
 .lock-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 13px;
-    background: var(--accent-dim);
-    border: 1px solid rgba(108, 140, 255, 0.2);
-    color: var(--accent);
-    font-size: 22px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 68px;
+    height: 68px;
+    object-fit: contain;
     margin-bottom: 14px;
 }
 

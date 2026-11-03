@@ -66,6 +66,12 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26.x'
+      - name: Install Wails v3 CLI
+        shell: pwsh
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
+          $goBin = Join-Path (go env GOPATH) "bin"
+          Add-Content $env:GITHUB_PATH $goBin
       - name: Install NSIS
         run: choco install nsis -y --no-progress
       - name: Add NSIS to PATH
@@ -74,11 +80,14 @@ jobs:
       - name: Build Pegasus GUI executable
         shell: pwsh
         run: |
+          wails3 generate icons -input build/appicon.png -windowsfilename build/windows/icon.ico
+          wails3 generate syso -arch amd64 -icon build/windows/icon.ico -manifest build/windows/wails.exe.manifest -out wails_windows_amd64.syso
           $env:GOOS = "windows"
           $env:GOARCH = "amd64"
           $env:CGO_ENABLED = "0"
           New-Item -ItemType Directory -Force -Path bin | Out-Null
           go build -tags production -trimpath -ldflags="-w -s -H windowsgui" -o bin\Pegasus.exe .
+          Remove-Item wails_windows_amd64.syso
       - name: Package with NSIS
         shell: pwsh
         run: |
